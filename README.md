@@ -1,6 +1,8 @@
+Create conda environment with dependencies
 ```
-conda env create -n conda-env -f /path/to/environment.yml
+conda env create -n conda-env -f ./environment.yml
 ```
+Activate conda environment
 
 ```
 conda activate ./conda-env
