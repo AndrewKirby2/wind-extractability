@@ -1,0 +1,4 @@
+name: /home/andrewkirby22/phd_work/part3_turbines/wind-extractability/conda-env
+channels:
+  - defaults
+prefix: /home/andrewkirby22/phd_work/part3_turbines/wind-extractability/conda-env
