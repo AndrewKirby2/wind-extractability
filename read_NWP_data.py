@@ -58,51 +58,81 @@ def load_NWP_data(DS_no, farm_diameter):
 
   return var_dict
 
-var_dict = load_NWP_data('DS1',20)
-print(var_dict)
+def hubh_wind_dir(u, v, farm_diameter, hubh):
+  """Calculates the wind direction at the turbine hub height
 
-#farm parameters
-farm_diam = 10000
-mperdeg = 111132.02
-grid = var_dict['p'][0]
-zh = grid.coords('level_height')[0].points
+  Parameters
+  ----------
+  u : iris Cube
+    velocities in x direction
+  v : iris Cube
+    velocities in y direction
+  farm_diamater: int
+    wind farm diameter in kilometres
+  hubh: int
+    wind turbine hug height
+  
+  Returns
+  -------
+  ang : float
+    wind direction in radians
+  """
+  
+  #farm parameters
+  mperdeg = 111132.02
+  grid = var_dict['p'][0]
+  zh = grid.coords('level_height')[0].points
 
-#discretisation for interpolation
-n_lats = 200
-n_lons = 200
+  #discretisation for interpolation
+  n_lats = 200
+  n_lons = 200
 
-lats = np.linspace(-1,1,n_lats)
-lons = np.linspace(359,361, n_lons)
+  lats = np.linspace(-1,1,n_lats)
+  lons = np.linspace(359,361, n_lons)
+  u = var_dict['u']
+  v = var_dict['v']
+  u = u.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+  v = v.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+
+  #mask all data points outside of wind farm CV
+  mask = np.full(u[:,:,:,:].shape, True)
+  c_lat = lats[0]+(lats[-1]-lats[0])/2. # centre of domain (lats[-1] is last value)
+  c_lon = lons[0]+(lons[-1]-lons[0])/2. # centre of domain
+  count = 0
+  for i, lat in enumerate(lats):
+      dlat = lat - c_lat
+      for j, lon in enumerate(lons):
+          dlon = lon - c_lon
+          d = np.sqrt(dlat*dlat + dlon*dlon)
+          if d <= (1000*farm_diameter/2./mperdeg):
+              mask[:,:,i,j] = False
+              count += 1
+
+  #average valid points in the horizontal direction
+  umean = np.mean(np.ma.array(u.data[:,:,:,:], mask=mask), axis=(2,3))
+  vmean = np.mean(np.ma.array(v.data[:,:,:,:], mask=mask), axis=(2,3))
+
+  #add 0 surface velocity
+  umean_full = np.zeros((24,41))
+  umean_full[:,0] = 0
+  umean_full[:,1:] = umean
+  vmean_full = np.zeros((24,41))
+  vmean_full[:,0] = 0
+  vmean_full[:,1:] = vmean
+  zh_full = np.zeros(41)
+  zh_full[0] = 0
+  zh_full[1:] = zh
+
+  #interpolate velocity at turbine hub height
+  umean_hubh = np.interp(hubh, zh_full, umean_full[0,:])
+  vmean_hubh = np.interp(hubh, zh_full, vmean_full[0,:])
+
+  #calucate wind direction at turbine hub height
+  ang = np.angle(complex(umean_hubh,vmean_hubh), deg=False)
+
+  return ang
+
+var_dict = load_NWP_data('DS5',20)
 u = var_dict['u']
-u = u.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
-
-#mask all data points outside of wind farm CV
-mask = np.full(u[:,:,:,:].shape, True)
-c_lat = lats[0]+(lats[-1]-lats[0])/2. # centre of domain (lats[-1] is last value)
-c_lon = lons[0]+(lons[-1]-lons[0])/2. # centre of domain
-count = 0
-for i, lat in enumerate(lats):
-    dlat = lat - c_lat
-    for j, lon in enumerate(lons):
-        dlon = lon - c_lon
-        d = np.sqrt(dlat*dlat + dlon*dlon)
-        if d <= (farm_diam/2./mperdeg):
-            mask[:,:,i,j] = False
-            count += 1
-
-#average valid points in the horizontal direction
-umean = np.mean(np.ma.array(u.data[:,:,:,:], mask=mask), axis=(2,3))
-
-#add 0 surface velocity
-umean_full = np.zeros((24,41))
-umean_full[:,0] = 0
-umean_full[:,1:] = umean
-zh_full = np.zeros(41)
-zh_full[0] = 0
-zh_full[1:] = zh
-
-#interpolate velocity onto uniform vertical spacing
-umean_interp = np.interp(np.linspace(0,250,251), zh_full, umean_full[0,:])
-
-print(sp.trapz(umean_interp)/250)
-print(np.mean(umean[0,zh<250]))
+v = var_dict['v']
+print(hubh_wind_dir(u, v, 20, 100))
