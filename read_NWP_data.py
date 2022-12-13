@@ -209,8 +209,8 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
   
   return varmean_cv
 
-var_dict = load_NWP_data('DS5',20)
-u = var_dict['u']
-v = var_dict['v']
-print(hubh_wind_dir(u, v, 20, 100))
-print(CV_average(var_dict,'u_0',20,250))
+#var_dict = load_NWP_data('DS5',20)
+#u = var_dict['u']
+#v = var_dict['v']
+#print(hubh_wind_dir(u, v, 20, 100))
+#print(CV_average(var_dict,'u_0',20,250))
