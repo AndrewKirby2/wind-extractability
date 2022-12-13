@@ -2,7 +2,7 @@ import iris
 import matplotlib.pyplot as plt
 import code
 import numpy as np
-import scipy.integrate as sp
+import scipy as sp
 
 
 def load_NWP_data(DS_no, farm_diameter):
@@ -58,11 +58,13 @@ def load_NWP_data(DS_no, farm_diameter):
 
   return var_dict
 
-def hubh_wind_dir(u, v, farm_diameter, hubh):
+def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
   """Calculates the wind direction at the turbine hub height
 
   Parameters
   ----------
+  var_dict : iris Cube
+    Data for variables with and without farm present
   u : iris Cube
     velocities in x direction
   v : iris Cube
@@ -74,7 +76,7 @@ def hubh_wind_dir(u, v, farm_diameter, hubh):
   
   Returns
   -------
-  ang : float
+  ang : numpy array (size 24)
     wind direction in radians
   """
   
@@ -123,12 +125,19 @@ def hubh_wind_dir(u, v, farm_diameter, hubh):
   zh_full[0] = 0
   zh_full[1:] = zh
 
-  #interpolate velocity at turbine hub height
-  umean_hubh = np.interp(hubh, zh_full, umean_full[0,:])
-  vmean_hubh = np.interp(hubh, zh_full, vmean_full[0,:])
+  
+  ang = np.zeros(24)
 
-  #calucate wind direction at turbine hub height
-  ang = np.angle(complex(umean_hubh,vmean_hubh), deg=False)
+  #loop over each 1hr time period
+  for i in range(24):
+    #interpolate velocity at turbine hub height
+    sc = sp.interpolate.CubicSpline(zh_full, umean_full[0,:])
+    umean_hubh = sc(hubh)
+    sc = sp.interpolate.CubicSpline(zh_full, vmean_full[0,:])
+    vmean_hubh = sc(hubh)
+
+    #calucate wind direction at turbine hub height
+    ang[i] = np.angle(complex(umean_hubh,vmean_hubh), deg=False)
 
   return ang
 
@@ -202,10 +211,12 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
 
     #interpolate velocity at turbine hub height
     z_interp = np.linspace(0, cv_height, cv_height+1)
-    var_interp = np.interp(z_interp, zh_full, varmean_full[i,:])
+    sc = sp.interpolate.CubicSpline(zh_full, varmean_full[i,:])
+    var_interp = sc(z_interp)
+    #var_interp = np.interp(z_interp, zh_full, varmean_full[i,:])
 
     #integrate over control volume
-    varmean_cv[i] = sp.trapz(var_interp, z_interp)/cv_height
+    varmean_cv[i] = sp.integrate.trapz(var_interp, z_interp)/cv_height
   
   return varmean_cv
 
