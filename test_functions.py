@@ -45,3 +45,13 @@ def test_cv_average_quadratic():
         var_dict['u'].data[:,i,:,:] = zh[i]**2/10000
     varmean_cv = CV_average(var_dict, 'u', 30, 250)
     npt.assert_almost_equal(varmean_cv, 2.083333*np.ones(24), decimal=5)
+
+def test_cv_average_log():
+    """ Test CV average for logarithmic profile
+    """
+    var_dict = load_NWP_data('DS0',10)
+    zh = var_dict['u'].coords('level_height')[0].points
+    for i in range(40):
+        var_dict['v_0'].data[:,i,:,:] = 10*np.log(zh[i])/np.log(100)
+    varmean_cv = CV_average(var_dict, 'v_0', 10, 250)
+    npt.assert_allclose(varmean_cv, 9.81872*np.ones(24), rtol=0.005)
