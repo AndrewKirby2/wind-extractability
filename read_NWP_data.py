@@ -1,4 +1,5 @@
 import iris
+import iris.quickplot as qplt
 import matplotlib.pyplot as plt
 import code
 import numpy as np
@@ -220,8 +221,39 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
   
   return varmean_cv
 
-#var_dict = load_NWP_data('DS5',20)
-#u = var_dict['u']
-#v = var_dict['v']
-#print(hubh_wind_dir(u, v, 20, 100))
-#print(CV_average(var_dict,'u_0',20,250))
+var_dict = load_NWP_data('DS5',20)
+farm_diameter = 20
+v_vel = var_dict['v'][0,3,:,:]
+qplt.pcolormesh(v_vel)
+print(v_vel)
+plt.savefig('v_vel.png')
+mperdeg = 111132.02
+grid = var_dict['p'][0]
+zh = grid.coords('level_height')[0].points
+
+#discretisation for interpolation
+n_lats = 200
+n_lons = 200
+
+lats = np.linspace(-1,1,n_lats)
+lons = np.linspace(359,361, n_lons)
+
+#mask all data points outside of wind farm CV
+mask = np.full(var_dict['v'][:,:,:,:].shape, True)
+c_lat = lats[0]+(lats[-1]-lats[0])/2. # centre of domain (lats[-1] is last value)
+c_lon = lons[0]+(lons[-1]-lons[0])/2. # centre of domain
+count = 0
+for i, lat in enumerate(lats):
+    dlat = lat - c_lat
+    for j, lon in enumerate(lons):
+        dlon = lon - c_lon
+        d = np.sqrt(dlat*dlat + dlon*dlon)
+        if d <= (1000*farm_diameter/2./mperdeg) and d >= (900*farm_diameter/2./mperdeg):
+            mask[:,:,i,j] = False
+print(v_vel)
+qplt.pcolormesh(v_vel)
+for i in range(201):
+  for j in range(200):
+    if mask[0,0,i,j]==False:
+      plt.scatter(lons[i], lats[j], c='k', s=0.1)
+plt.savefig('v_vel_mask.png')
