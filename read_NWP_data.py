@@ -220,3 +220,9 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
     varmean_cv[i] = sp.integrate.trapz(var_interp, z_interp)/cv_height
   
   return varmean_cv
+
+var_dict = load_NWP_data('DS5', 30)
+var = var_dict['u']
+print(np.shape(var.data[3,0,:,:]))
+plt.pcolormesh(var.coords('grid_longtitude')[0].points, var.coords('grid_latitude')[0].points, var.data[3,0,:,:], shading='nearest')
+plt.savefig('u.png')
