@@ -55,3 +55,12 @@ def test_cv_average_log():
         var_dict['v_0'].data[:,i,:,:] = 10*np.log(zh[i])/np.log(100)
     varmean_cv = CV_average(var_dict, 'v_0', 10, 250)
     npt.assert_allclose(varmean_cv, 9.81872*np.ones(24), rtol=0.005)
+
+def test_surface_average():
+    """ Test surface average function
+    """
+    var_dict = load_NWP_data('DS3',20)
+    taux_0 = var_dict['taux_0']
+    taux_0.data[:,0,:,:] = 5.0
+    varmean_surface = surface_average(var_dict, 'taux_0', 20)
+    npt.assert_array_equal(varmean_surface, 5.0*np.ones(24))

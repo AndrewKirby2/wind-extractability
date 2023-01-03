@@ -221,8 +221,56 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
   
   return varmean_cv
 
-var_dict = load_NWP_data('DS5', 30)
-var = var_dict['u']
-print(np.shape(var.data[3,0,:,:]))
-plt.pcolormesh(var.coords('grid_longtitude')[0].points, var.coords('grid_latitude')[0].points, var.data[3,0,:,:], shading='nearest')
-plt.savefig('u.png')
+def surface_average(var_dict, var, farm_diameter):
+  """Calculate surface average of quantity
+
+  Parameters
+  ----------
+  var_dict : iris Cube
+    dictionary containing data extracted from NWP simulations
+  var : str
+    name of variable to be averaged i.e. 'u' or 'u_0'
+  farm_diameter : int
+    wind farm diameter in kilometres
+
+  Returns
+  -------
+  varmean_cv : numpy array (size 24)
+    control surface averaged quantities for each hour
+    time period across 24 hour period
+  """
+  
+  #only valid for taux and tauy variables!
+  assert var[:4] == 'taux' or var[:4] == 'tauy'
+  #farm parameters
+  mperdeg = 111132.02
+  grid = var_dict['p'][0]
+  zh = grid.coords('level_height')[0].points
+
+  #discretisation for interpolation
+  n_lats = 200
+  n_lons = 200
+
+  lats = np.linspace(-1,1,n_lats)
+  lons = np.linspace(359,361, n_lons)
+  var = var_dict[var]
+  var = var.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+
+  #mask all data points outside of wind farm CV
+  mask = np.full(var[:,:,:,:].shape, True)
+  c_lat = 0.0135 # centre of domain (lats[-1] is last value)
+  c_lon = 360.0135 # centre of domain
+  count = 0
+  for i, lat in enumerate(lats):
+      dlat = lat - c_lat
+      for j, lon in enumerate(lons):
+          dlon = lon - c_lon
+          d = np.sqrt(dlat*dlat + dlon*dlon)
+          if d <= (1000*farm_diameter/2./mperdeg):
+              mask[:,:,i,j] = False
+              count += 1
+
+  #average valid points in the horizontal direction at the lowest model level
+  varmean_surface = np.mean(np.ma.array(var.data[:,0,:,:], mask=mask[:,0,:,:]), axis=(1,2))
+  
+  return varmean_surface
