@@ -322,6 +322,7 @@ def calculate_farm_data(DS_no, farm_diameter):
   tauy_mean_0 = surface_average(var_dict, 'tauy_0', farm_diameter)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
+  print(uf_0)
   # calculate surface stress in streamwise direction
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
 
@@ -335,4 +336,4 @@ def calculate_farm_data(DS_no, farm_diameter):
   return beta, M, zeta
 
 
-print(calculate_farm_data('DS8', 10))
+#print(calculate_farm_data('DS2', 20))
