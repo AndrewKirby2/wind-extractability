@@ -67,9 +67,9 @@ def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
   var_dict : iris Cube
     Data for variables with and without farm present
   u : iris Cube
-    velocities in x direction
+    u velocity data
   v : iris Cube
-    velocities in y direction
+    v velocity data
   farm_diamater: int
     wind farm diameter in kilometres
   hubh: int
@@ -92,8 +92,6 @@ def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
 
   lats = np.linspace(-1,1,n_lats)
   lons = np.linspace(359,361, n_lons)
-  u = var_dict['u']
-  v = var_dict['v']
   u = u.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
   v = v.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 
@@ -132,9 +130,9 @@ def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
   #loop over each 1hr time period
   for i in range(24):
     #interpolate velocity at turbine hub height
-    sc = sp.interpolate.CubicSpline(zh_full, umean_full[0,:])
+    sc = sp.interpolate.CubicSpline(zh_full, umean_full[i,:])
     umean_hubh = sc(hubh)
-    sc = sp.interpolate.CubicSpline(zh_full, vmean_full[0,:])
+    sc = sp.interpolate.CubicSpline(zh_full, vmean_full[i,:])
     vmean_hubh = sc(hubh)
 
     #calucate wind direction at turbine hub height
@@ -273,4 +271,62 @@ def surface_average(var_dict, var, farm_diameter):
   #average valid points in the horizontal direction at the lowest model level
   varmean_surface = np.mean(np.ma.array(var.data[:,0,:,:], mask=mask[:,0,:,:]), axis=(1,2))
   
-  return varmean_surface
+  return varmean_surface.data
+
+def calculate_farm_data(DS_no, farm_diameter):
+  """Calculate wind farm variables
+
+  Parameters
+  ----------
+  DS_no : str
+    Data set number i.e. 'DS0'
+  farm_diameter : int
+    wind farm diameter in kilometres
+
+  Returns
+  -------
+  beta : numpy array (size 24)
+    farm wind-speed reduction factor for each hour
+    time period across 24 hour period
+  """
+
+  #extract data
+  var_dict = load_NWP_data(DS_no, farm_diameter)
+
+  #information about farm CV
+  cv_height = 250
+  hubh = 100
+
+  #with farm present
+  wind_dir = hubh_wind_dir(var_dict, var_dict['u'], var_dict['v'], farm_diameter, hubh)
+  u_mean = CV_average(var_dict, 'u', farm_diameter, cv_height)
+  v_mean = CV_average(var_dict, 'v', farm_diameter, cv_height)
+  taux_mean = surface_average(var_dict, 'taux', farm_diameter)
+  tauy_mean = surface_average(var_dict, 'tauy', farm_diameter)
+  # calculate farm-layer-averaged streamwise velocity U_F
+  uf = u_mean*np.cos(wind_dir) + v_mean*np.sin(wind_dir)
+  # calculate surface stress in streamwise direction
+  tauw = taux_mean*np.cos(wind_dir) + tauy_mean*np.sin(wind_dir)
+
+  #without farm present
+  wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_0'], var_dict['v_0'], farm_diameter, hubh)
+  u_mean_0 = CV_average(var_dict, 'u_0', farm_diameter, cv_height)
+  v_mean_0 = CV_average(var_dict, 'v_0', farm_diameter, cv_height)
+  taux_mean_0 = surface_average(var_dict, 'taux_0', farm_diameter)
+  tauy_mean_0 = surface_average(var_dict, 'tauy_0', farm_diameter)
+  # calculate farm-layer-averaged streamwise velocity U_F
+  uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
+  # calculate surface stress in streamwise direction
+  tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
+
+  #calculate farm wind-speed reduction factor \beta
+  beta = uf/uf_0
+  #calculate momentum availability factor M
+  M = tauw/tauw_0
+  #calculate wind extractability factor \zeta
+  zeta = (M-1)/(1-beta)
+
+  return beta, M, zeta
+
+
+print(calculate_farm_data('DS8', 10))
