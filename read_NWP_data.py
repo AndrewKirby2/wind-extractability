@@ -288,6 +288,12 @@ def calculate_farm_data(DS_no, farm_diameter):
   beta : numpy array (size 24)
     farm wind-speed reduction factor for each hour
     time period across 24 hour period
+  M : numpy array (size 24)
+    momentum availability factor for each hour
+    time period across 24 hour period
+  M : numpy array (size 24)
+    wind extractability factor for each hour
+    time period across 24 hour period
   """
 
   #extract data
