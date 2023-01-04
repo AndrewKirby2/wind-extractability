@@ -6,8 +6,9 @@ import numpy as np
 from read_NWP_data import *
 import matplotlib.pyplot as plt
 
-DS_no = 'DS8'
+DS_no = 'DS2'
 farm_diameter = 20
+hubh = 100
 cv_height=250
 
 var_dict = load_NWP_data(DS_no, farm_diameter)
@@ -69,20 +70,40 @@ umean_func = CV_average(var_dict, 'u', farm_diameter, cv_height)
 umean0_func = CV_average(var_dict, 'u_0', farm_diameter, cv_height)
 vmean_func = CV_average(var_dict, 'v', farm_diameter, cv_height)
 vmean0_func = CV_average(var_dict, 'v_0', farm_diameter, cv_height)
+taux_func = surface_average(var_dict, 'taux', farm_diameter)
+tauy_func = surface_average(var_dict, 'tauy', farm_diameter)
+taux0_func = surface_average(var_dict, 'taux_0', farm_diameter)
+tauy0_func = surface_average(var_dict, 'tauy_0', farm_diameter)
+wind_dir = hubh_wind_dir(var_dict, var_dict['u'], var_dict['v'], farm_diameter, hubh)
+wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_0'], var_dict['v_0'], farm_diameter, hubh)
+print(umean_func[5])
+print(umean0_func[5])
+print(vmean_func[5])
+print(vmean0_func[5])
+print(wind_dir[5])
+print(wind_dir_0[5])
+print(taux_func[5])
+print(taux0_func[5])
+print(tauy_func[5])
+print(tauy0_func[5])
+print(calculate_farm_data('DS2', 20))
 
-for i in range(24):
+for i in [5]:
     plt.figure()
     plt.plot(umean[i,:], zh, label='u', color='blue')
     plt.plot(umean_0[i,:], zh, label='u_0', color='blue', linestyle='--')
     plt.plot(vmean[i,:], zh, label='v', color='red')
     plt.plot(vmean_0[i,:], zh, label='v_0', color='red', linestyle='--')
-    plt.axvline(umean_func[i], color='blue')
+    #plt.axvline(umean_func[i], color='blue')
+    #plt.axvline(umean0_func[i], color='blue', linestyle='--')
+    #plt.axvline(vmean_func[i], color='red')
+    #plt.axvline(vmean0_func[i], color='red', linestyle='--')
     plt.xlabel('Velocity (m/s)')
     plt.ylabel('Height (m)')
     plt.legend()
-    plt.ylim([0,300])
+    plt.ylim([90,110])
     plt.xlim([-20,20])
-    plt.savefig(f'plots/velocity_profiles_{DS_no}_{i}.png')
+    plt.savefig(f'plots/wind_dir_check_{DS_no}_{i}.png')
     plt.close()
 
 for i in range(24):
@@ -95,6 +116,6 @@ for i in range(24):
     plt.ylabel('Height (m)')
     plt.legend()
     plt.ylim([0,300])
-    plt.xlim([-1,2])
+    plt.xlim([-2,2])
     plt.savefig(f'plots/stress_profiles_{DS_no}_{i}.png')
     plt.close()

@@ -73,7 +73,7 @@ def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
   farm_diamater: int
     wind farm diameter in kilometres
   hubh: int
-    wind turbine hug height
+    wind turbine hub height
   
   Returns
   -------
