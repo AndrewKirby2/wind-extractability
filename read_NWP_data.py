@@ -25,7 +25,7 @@ def load_NWP_data(DS_no, farm_diameter):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'rig']
+  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'theta']
 
   #create dictionary of extract data
   var_dict = dict()
@@ -164,7 +164,7 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
   
   #farm parameters
   mperdeg = 111132.02
-  grid = var_dict['p'][0]
+  grid = var_dict[var][0]
   zh = grid.coords('level_height')[0].points
 
   #discretisation for interpolation
@@ -173,11 +173,11 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
 
   lats = np.linspace(-1,1,n_lats)
   lons = np.linspace(359,361, n_lons)
-  var = var_dict[var]
-  var = var.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+  variable = var_dict[var]
+  variable = variable.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 
   #mask all data points outside of wind farm CV
-  mask = np.full(var[:,:,:,:].shape, True)
+  mask = np.full(variable[:,:,:,:].shape, True)
   c_lat = 0.0135 # centre of domain (lats[-1] is last value)
   c_lon = 360.0135 # centre of domain
   count = 0
@@ -191,15 +191,19 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
               count += 1
 
   #average valid points in the horizontal direction
-  varmean = np.mean(np.ma.array(var.data[:,:,:,:], mask=mask), axis=(2,3))
+  varmean = np.mean(np.ma.array(variable.data[:,:,:,:], mask=mask), axis=(2,3))
 
   #add 0 surface velocity
   varmean_full = np.zeros((24,41))
-  varmean_full[:,0] = 0
-  varmean_full[:,1:] = varmean
-  zh_full = np.zeros(41)
-  zh_full[0] = 0
-  zh_full[1:] = zh
+  if var == 'theta' or var == 'theta_0':
+    varmean_full = varmean
+    zh_full = zh
+  else:
+    varmean_full[:,0] = 0
+    varmean_full[:,1:] = varmean
+    zh_full = np.zeros(41)
+    zh_full[0] = 0
+    zh_full[1:] = zh
 
   #array to store cv averages
   varmean_cv = np.zeros(24)
@@ -211,7 +215,6 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
     z_interp = np.linspace(0, cv_height, cv_height+1)
     sc = sp.interpolate.CubicSpline(zh_full, varmean_full[i,:])
     var_interp = sc(z_interp)
-    #var_interp = np.interp(z_interp, zh_full, varmean_full[i,:])
 
     #integrate over control volume
     varmean_cv[i] = sp.integrate.trapz(var_interp, z_interp)/cv_height
@@ -237,8 +240,6 @@ def surface_average(var_dict, var, farm_diameter):
     time period across 24 hour period
   """
   
-  #only valid for taux and tauy variables!
-  assert var[:4] == 'taux' or var[:4] == 'tauy'
   #farm parameters
   mperdeg = 111132.02
   grid = var_dict['p'][0]
@@ -250,11 +251,11 @@ def surface_average(var_dict, var, farm_diameter):
 
   lats = np.linspace(-1,1,n_lats)
   lons = np.linspace(359,361, n_lons)
-  var = var_dict[var]
-  var = var.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+  variable = var_dict[var]
+  variable = variable.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 
   #mask all data points outside of wind farm CV
-  mask = np.full(var[:,:,:,:].shape, True)
+  mask = np.full(variable[:,:,:,:].shape, True)
   c_lat = 0.0135 # centre of domain (lats[-1] is last value)
   c_lon = 360.0135 # centre of domain
   count = 0
@@ -268,12 +269,12 @@ def surface_average(var_dict, var, farm_diameter):
               count += 1
 
   #average valid points in the horizontal direction at the lowest model level
-  varmean_surface = np.mean(np.ma.array(var.data[:,0,:,:], mask=mask[:,0,:,:]), axis=(1,2))
+  varmean_surface = np.mean(np.ma.array(variable.data[:,0,:,:], mask=mask[:,0,:,:]), axis=(1,2))
   
   return varmean_surface.data
 
 def top_surface_average(var_dict, var, farm_diameter, cv_height):
-    """Calculate average of quantity across top surface
+  """Calculate average of quantity across top surface
     of control volume
 
   Parameters
@@ -295,7 +296,7 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
   """
   #farm parameters
   mperdeg = 111132.02
-  grid = var_dict['p'][0]
+  grid = var_dict[var][0]
   zh = grid.coords('level_height')[0].points
 
   #discretisation for interpolation
@@ -304,11 +305,11 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
 
   lats = np.linspace(-1,1,n_lats)
   lons = np.linspace(359,361, n_lons)
-  var = var_dict[var]
-  var = var.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+  variable = var_dict[var]
+  variable = variable.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 
   #mask all data points outside of wind farm CV
-  mask = np.full(var[:,:,:,:].shape, True)
+  mask = np.full(variable[:,:,:,:].shape, True)
   c_lat = 0.0135 # centre of domain (lats[-1] is last value)
   c_lon = 360.0135 # centre of domain
   count = 0
@@ -322,7 +323,7 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
               count += 1
 
   #average valid points in the horizontal direction
-  varmean = np.mean(np.ma.array(var.data[:,:,:,:], mask=mask), axis=(2,3))
+  varmean = np.mean(np.ma.array(variable.data[:,:,:,:], mask=mask), axis=(2,3))
 
   #array to store averages
   varmean_top = np.zeros(24)
@@ -331,8 +332,8 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
   for i in range(24):
 
     #interpolate variable at top of control volume
-    sc = sp.interpolate.CubicSpline(cv_height, varmean[i,:])
-    var_interp = sc(z_interp)
+    sc = sp.interpolate.CubicSpline(zh, varmean[i,:])
+    var_interp = sc(cv_height)
     varmean_top[i] = var_interp
   
   return varmean_top
@@ -391,6 +392,14 @@ def calculate_farm_data(DS_no, farm_diameter):
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
   #calculate natural friction coefficient
   cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
+  #calculate Brunt Vaisala frequency (squared)
+  theta_mean_0 = CV_average(var_dict, 'theta_0', farm_diameter, cv_height)
+  theta_bottom_0 = surface_average(var_dict, 'theta_0', farm_diameter)
+  theta_top_0 = top_surface_average(var_dict, 'theta_0', farm_diameter, cv_height)
+  delta_theta = theta_top_0 - theta_bottom_0
+  N_sq = (9.81/theta_mean_0)*delta_theta
+  #calculate natural Froude number
+  fr_0 = uf_0/(np.sqrt(N_sq)*hubh)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -399,14 +408,15 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0
+  return beta, M, zeta, cf_0, fr_0
 
 for no in range(10):
   print(no)
   for farm_diameter in [10,15,20,25,30]:
     print(farm_diameter)
-    beta, M, zeta, cf_0, rig_mean_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
+    np.save(f'data/fr0_DS{no}_{farm_diameter}.npy', fr_0)
