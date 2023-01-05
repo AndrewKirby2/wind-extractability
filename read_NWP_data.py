@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import code
 import numpy as np
 import scipy as sp
+import time
 
 
 def load_NWP_data(DS_no, farm_diameter):
@@ -322,7 +323,6 @@ def calculate_farm_data(DS_no, farm_diameter):
   tauy_mean_0 = surface_average(var_dict, 'tauy_0', farm_diameter)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
-  print(uf_0)
   # calculate surface stress in streamwise direction
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
 
@@ -335,5 +335,11 @@ def calculate_farm_data(DS_no, farm_diameter):
 
   return beta, M, zeta
 
-
-#print(calculate_farm_data('DS2', 20))
+for no in range(10):
+  print(no)
+  for farm_diameter in [10,15,20,25,30]:
+    print(farm_diameter)
+    beta, M, zeta = calculate_farm_data(f'DS{no}', farm_diameter)
+    np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
+    np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
+    np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
