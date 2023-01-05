@@ -25,7 +25,7 @@ def load_NWP_data(DS_no, farm_diameter):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens']
+  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'rig']
 
   #create dictionary of extract data
   var_dict = dict()
@@ -162,8 +162,6 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
     time period across 24 hour period
   """
   
-  #only valid for u and v variables!
-  assert var[0] == 'u' or var[0] == 'v'
   #farm parameters
   mperdeg = 111132.02
   grid = var_dict['p'][0]
@@ -274,6 +272,71 @@ def surface_average(var_dict, var, farm_diameter):
   
   return varmean_surface.data
 
+def top_surface_average(var_dict, var, farm_diameter, cv_height):
+    """Calculate average of quantity across top surface
+    of control volume
+
+  Parameters
+  ----------
+  var_dict : iris Cube
+    dictionary containing data extracted from NWP simulations
+  var : str
+    name of variable to be averaged i.e. 'u' or 'u_0'
+  farm_diameter : int
+    wind farm diameter in kilometres
+  cv_height : int
+    height of control volume in metres
+
+  Returns
+  -------
+  varmean_cv : numpy array (size 24)
+    control surface averaged quantities for each hour
+    time period across 24 hour period
+  """
+  #farm parameters
+  mperdeg = 111132.02
+  grid = var_dict['p'][0]
+  zh = grid.coords('level_height')[0].points
+
+  #discretisation for interpolation
+  n_lats = 200
+  n_lons = 200
+
+  lats = np.linspace(-1,1,n_lats)
+  lons = np.linspace(359,361, n_lons)
+  var = var_dict[var]
+  var = var.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+
+  #mask all data points outside of wind farm CV
+  mask = np.full(var[:,:,:,:].shape, True)
+  c_lat = 0.0135 # centre of domain (lats[-1] is last value)
+  c_lon = 360.0135 # centre of domain
+  count = 0
+  for i, lat in enumerate(lats):
+      dlat = lat - c_lat
+      for j, lon in enumerate(lons):
+          dlon = lon - c_lon
+          d = np.sqrt(dlat*dlat + dlon*dlon)
+          if d <= (1000*farm_diameter/2./mperdeg):
+              mask[:,:,i,j] = False
+              count += 1
+
+  #average valid points in the horizontal direction
+  varmean = np.mean(np.ma.array(var.data[:,:,:,:], mask=mask), axis=(2,3))
+
+  #array to store averages
+  varmean_top = np.zeros(24)
+
+  #loop over each 1hr time period
+  for i in range(24):
+
+    #interpolate variable at top of control volume
+    sc = sp.interpolate.CubicSpline(cv_height, varmean[i,:])
+    var_interp = sc(z_interp)
+    varmean_top[i] = var_interp
+  
+  return varmean_top
+
 def calculate_farm_data(DS_no, farm_diameter):
   """Calculate wind farm variables
 
@@ -321,10 +384,13 @@ def calculate_farm_data(DS_no, farm_diameter):
   v_mean_0 = CV_average(var_dict, 'v_0', farm_diameter, cv_height)
   taux_mean_0 = surface_average(var_dict, 'taux_0', farm_diameter)
   tauy_mean_0 = surface_average(var_dict, 'tauy_0', farm_diameter)
+  dens_mean_0 = CV_average(var_dict, 'dens_0', farm_diameter, cv_height)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
   # calculate surface stress in streamwise direction
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
+  #calculate natural friction coefficient
+  cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -333,13 +399,14 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta
+  return beta, M, zeta, cf_0
 
 for no in range(10):
   print(no)
   for farm_diameter in [10,15,20,25,30]:
     print(farm_diameter)
-    beta, M, zeta = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, rig_mean_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
+    np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)

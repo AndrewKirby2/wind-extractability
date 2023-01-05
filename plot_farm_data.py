@@ -6,17 +6,18 @@ import matplotlib.pyplot as plt
 import sklearn.metrics as sk
 
 #load farm data for different sizes
-for farm_diameter in [10,15,20,25,30]:
-    zeta = np.load(f'data/zeta_DS8_{farm_diameter}.npy')
-    plt.plot(zeta, label=str(farm_diameter)+' km')
-plt.legend()
+for no in range(10):
+    zeta = np.load(f'data/zeta_DS{no}_20.npy')
+    cf0 = np.load(f'data/cf0_DS{no}_20.npy')
+    plt.scatter(cf0, rig0, c=zeta, vmin=0, vmax=50)
+#plt.ylim([0,60])
 plt.ylabel(r'$\zeta$')
-plt.xlabel('Time (h)')
+plt.xlabel(r'$C_{f0}$')
 
-plt.savefig('plots/zeta_DS8.png')
+plt.savefig('plots/zeta_cf0_20km.png')
 
 for no in range(10):
-    print(f'Mean absoulte percentage errors for DS{no} (%)')
+    print(f'Mean absolute percentage errors for DS{no} (%)')
 
     print("{:<10} {:<10} {:<10} {:<10} {:<10}".format('Size (km)','zeta','beta','1/(1-beta)','M-1'))
     #calculate difference between old and new methods
