@@ -6,8 +6,8 @@ import numpy as np
 from read_NWP_data import *
 import matplotlib.pyplot as plt
 
-DS_no = 'DS0'
-farm_diameter = 20
+DS_no = 'DS8'
+farm_diameter = 10
 hubh = 100
 cv_height=250
 
@@ -20,6 +20,7 @@ taux = var_dict['taux']
 tauy = var_dict['tauy']
 taux_0 = var_dict['taux_0']
 tauy_0 = var_dict['tauy_0']
+theta_0 = var_dict['theta_0']
 
 #farm parameters
 mperdeg = 111132.02
@@ -40,6 +41,8 @@ taux = taux.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris
 tauy = tauy.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 taux_0 = taux_0.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 tauy_0 = tauy_0.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+
+theta_0 = theta_0.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
 
 #mask all data points outside of wind farm CV
 mask = np.full(u[:,:,:,:].shape, True)
@@ -66,6 +69,21 @@ tauymean = np.mean(np.ma.array(tauy.data[:,:,:,:], mask=mask), axis=(2,3))
 tauxmean_0 = np.mean(np.ma.array(taux_0.data[:,:,:,:], mask=mask), axis=(2,3))
 tauymean_0 = np.mean(np.ma.array(tauy_0.data[:,:,:,:], mask=mask), axis=(2,3))
 
+mask = np.full(theta_0[:,:,:,:].shape, True)
+c_lat = 0.0135 # centre of domain 
+c_lon = 360.0135 # centre of domain
+count = 0
+for i, lat in enumerate(lats):
+    dlat = lat - c_lat
+    for j, lon in enumerate(lons):
+        dlon = lon - c_lon
+        d = np.sqrt(dlat*dlat + dlon*dlon)
+        if d <= (1000*farm_diameter/2./mperdeg):
+            mask[:,:,i,j] = False
+            count += 1
+
+thetamean_0 = np.mean(np.ma.array(theta_0.data[:,:,:,:], mask=mask), axis=(2,3))
+
 umean_func = CV_average(var_dict, 'u', farm_diameter, cv_height)
 umean0_func = CV_average(var_dict, 'u_0', farm_diameter, cv_height)
 vmean_func = CV_average(var_dict, 'v', farm_diameter, cv_height)
@@ -88,34 +106,26 @@ print(tauy_func[23])
 print(tauy0_func[23])
 print(calculate_farm_data(DS_no, farm_diameter))
 
-for i in [23]:
+for i in range(24):
     plt.figure()
-    plt.plot(umean[i,:], zh, label='u', color='blue')
-    plt.plot(umean_0[i,:], zh, label='u_0', color='blue', linestyle='--')
-    plt.plot(vmean[i,:], zh, label='v', color='red')
-    plt.plot(vmean_0[i,:], zh, label='v_0', color='red', linestyle='--')
-    plt.axvline(umean_func[i], color='blue')
-    plt.axvline(umean0_func[i], color='blue', linestyle='--')
-    plt.axvline(vmean_func[i], color='red')
-    plt.axvline(vmean0_func[i], color='red', linestyle='--')
+    plt.plot(tauxmean_0[i,:], zh, label='taux_0', color='blue')
+    plt.plot(tauymean_0[i,:], zh, label='tauy_0', color='blue', linestyle='--')
     plt.xlabel('Velocity (m/s)')
     plt.ylabel('Height (m)')
     plt.legend()
-    plt.ylim([90,110])
-    plt.xlim([-20,20])
-    plt.savefig(f'plots/wind_dir_check_{DS_no}_{i}.png')
+    plt.ylim([0,1000])
+    plt.xlim([-2,2])
+    plt.savefig(f'plots/stress_profiles_{DS_no}_{i}.png')
     plt.close()
+
+grid = var_dict['theta_0'][0]
+zh = grid.coords('level_height')[0].points
 
 for i in range(24):
     plt.figure()
-    plt.plot(tauxmean[i,:], zh, label='taux', color='blue')
-    plt.plot(tauxmean_0[i,:], zh, label='taux_0', color='blue', linestyle='--')
-    plt.plot(tauymean[i,:], zh, label='tauy', color='red')
-    plt.plot(tauymean_0[i,:], zh, label='tauy_0', color='red', linestyle='--')
-    #plt.xlabel('Velocity (m/s)')
+    plt.plot(thetamean_0[i,:], zh, label='taux', color='blue')
+    plt.xlabel(r'$\theta$ (K)')
     plt.ylabel('Height (m)')
-    plt.legend()
-    plt.ylim([0,300])
-    plt.xlim([-2,2])
-    plt.savefig(f'plots/stress_profiles_{DS_no}_{i}.png')
+    plt.ylim([0,1000])
+    plt.savefig(f'plots/theta_profiles_{DS_no}_{i}.png')
     plt.close()

@@ -356,8 +356,14 @@ def calculate_farm_data(DS_no, farm_diameter):
   M : numpy array (size 24)
     momentum availability factor for each hour
     time period across 24 hour period
-  M : numpy array (size 24)
+  zeta : numpy array (size 24)
     wind extractability factor for each hour
+    time period across 24 hour period
+  cf0 : numpy array (size 24)
+    natural surface friction coefficent for each hour
+    time period across 24 hour period
+  fr0 : numpy array (size 24)
+    natural Froude number for each hour
     time period across 24 hour period
   """
 
@@ -395,11 +401,13 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate Brunt Vaisala frequency (squared)
   theta_mean_0 = CV_average(var_dict, 'theta_0', farm_diameter, cv_height)
   theta_bottom_0 = surface_average(var_dict, 'theta_0', farm_diameter)
-  theta_top_0 = top_surface_average(var_dict, 'theta_0', farm_diameter, cv_height)
+  #calculate froude number over 2 x CV height!
+  theta_top_0 = top_surface_average(var_dict, 'theta_0', farm_diameter, 2*cv_height)
   delta_theta = theta_top_0 - theta_bottom_0
-  N_sq = (9.81/theta_mean_0)*delta_theta
+  N_sq = (9.81/theta_mean_0)*(delta_theta/(2*cv_height))
   #calculate natural Froude number
-  fr_0 = uf_0/(np.sqrt(N_sq)*hubh)
+  fr_0 = uf_0/(np.sqrt(N_sq)*cv_height)
+  print(fr_0)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -410,10 +418,11 @@ def calculate_farm_data(DS_no, farm_diameter):
 
   return beta, M, zeta, cf_0, fr_0
 
-for no in range(10):
-  print(no)
-  for farm_diameter in [10,15,20,25,30]:
-    print(farm_diameter)
+for farm_diameter in [10,15,20,25,30]:
+  print(farm_diameter)
+  for no in range(0):
+    print(no)
+
     beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
