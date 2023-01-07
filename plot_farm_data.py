@@ -5,23 +5,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sklearn.metrics as sk
 
+#array to store results for histogram
+zeta = np.zeros((5,240))
+farm_diameters = [10,15,20,25,30]
+
 #load farm data for different sizes
-for no in range(10):
-    zeta = np.load(f'data/zeta_DS{no}_30.npy')
-    cf0 = np.load(f'data/cf0_DS{no}_30.npy')
-    inv_fr0 = 1.0/np.load(f'data/fr0_DS{no}_30.npy')
-    print(no, inv_fr0)
-    #unstable conditions - set inverse froude number to 0
-    inv_fr0 = np.nan_to_num(inv_fr0)
+for i in range(5):
+    farm_diameter = farm_diameters[i]
+    for no in range(10):
+        zeta[i,24*no:24*(no+1)] = np.load(f'data/zeta_DS{no}_{farm_diameter}.npy')
 
-    plt.scatter(inv_fr0, cf0, c=zeta, vmin=0, vmax=50)
-plt.xlim([-1,2])
-plt.ylabel(r'$C_{f0}$')
-plt.xlabel(r'$1/Fr_{0}$')
-cbar = plt.colorbar()
-cbar.set_label(r'$\zeta$')
+for i in [0, 2, 4]:
+    plt.hist(zeta[i,:], density=True, range=(0,80), bins=25, histtype=u'step', label=str(farm_diameters[i])+' km')
 
-plt.savefig('plots/zeta_cf0_30km.png')
+plt.ylabel('Density')
+plt.xlabel(r'$\zeta$')
+plt.legend()
+plt.savefig('plots/zeta_histogram.png')
 
 for no in range(10):
     print(f'Mean absolute percentage errors for DS{no} (%)')

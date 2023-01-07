@@ -25,7 +25,7 @@ def load_NWP_data(DS_no, farm_diameter):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'theta']
+  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'theta', 'rig_mn']
 
   #create dictionary of extract data
   var_dict = dict()
@@ -365,6 +365,10 @@ def calculate_farm_data(DS_no, farm_diameter):
   fr0 : numpy array (size 24)
     natural Froude number for each hour
     time period across 24 hour period
+  rig_hubh : numpy array (size 24)
+    time-averaged gradient Richardson number at the 
+    turbine hubh for each hour time period across 
+    24 hour period
   """
 
   #extract data
@@ -407,7 +411,7 @@ def calculate_farm_data(DS_no, farm_diameter):
   N_sq = (9.81/theta_mean_0)*(delta_theta/(2*cv_height))
   #calculate natural Froude number
   fr_0 = uf_0/(np.sqrt(N_sq)*cv_height)
-  print(fr_0)
+  rig_hubh_0 = top_surface_average(var_dict, 'rig_mn_0', farm_diameter, hubh)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -416,16 +420,17 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0, fr_0
+  return beta, M, zeta, cf_0, fr_0, rig_hubh_0
 
 for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
-  for no in range(0):
+  for no in range(10):
     print(no)
 
-    beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, fr_0, rig_hubh_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/fr0_DS{no}_{farm_diameter}.npy', fr_0)
+    np.save(f'data/rig0_DS{no}_{farm_diameter}.npy', rig_hubh_0)
