@@ -7,7 +7,7 @@ import scipy as sp
 import time
 
 
-def load_NWP_data(DS_no, farm_diameter):
+def load_NWP_data(DS_no, farm_diameter, z0='0p1'):
   """Load data from UM simulation with wind farm parameterisation
 
   Parameters
@@ -16,6 +16,8 @@ def load_NWP_data(DS_no, farm_diameter):
     Data set number i.e. 'DS0'
   farm_diameter : int
     Wind farm diameter in kilometres
+  z0 : str
+    Wind farm roughness length (m)
   
   Returns
   -------
@@ -25,7 +27,7 @@ def load_NWP_data(DS_no, farm_diameter):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u', 'v', 'w', 'p', 'ustar', 'psurf', 'taux', 'tauy', 'dens', 'theta', 'rig_mn']
+  fn_vars = ['u_mn', 'v_mn', 'taux_mn', 'tauy_mn', 'dens_mn', 'theta_mn']
 
   #create dictionary of extract data
   var_dict = dict()
@@ -44,9 +46,9 @@ def load_NWP_data(DS_no, farm_diameter):
     var_dict[fn_vars[i]+'_0'] = iris.cube.CubeList(var_dict[fn_vars[i]+'_0'])
     var_dict[fn_vars[i]+'_0'] = var_dict[fn_vars[i]+'_0'].concatenate_cube()
 
-  #Secondly, without farm present
+  #Secondly, with farm present
   #location of datasets
-  ddir = f'../../part1_turbines/UM_farm_data/Datasets/{DS_no}/wfm_run_z0_0p1_d{str(farm_diameter)}/d2/'
+  ddir = f'../../part1_turbines/UM_farm_data/Datasets/{DS_no}/wfm_run_z0_{z0}_d{str(farm_diameter)}/d2/'
 
   #loop through each variable
   for i in range(len(fn_vars)):
@@ -84,7 +86,7 @@ def hubh_wind_dir(var_dict, u, v, farm_diameter, hubh):
   
   #farm parameters
   mperdeg = 111132.02
-  grid = var_dict['p'][0]
+  grid = var_dict['u_mn'][0]
   zh = grid.coords('level_height')[0].points
 
   #discretisation for interpolation
@@ -195,7 +197,7 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
 
   #add 0 surface velocity
   varmean_full = np.zeros((24,41))
-  if var == 'theta' or var == 'theta_0':
+  if var == 'theta_mn' or var == 'theta_mn_0':
     varmean_full = varmean
     zh_full = zh
   else:
@@ -242,7 +244,7 @@ def surface_average(var_dict, var, farm_diameter):
   
   #farm parameters
   mperdeg = 111132.02
-  grid = var_dict['p'][0]
+  grid = var_dict[var][0]
   zh = grid.coords('level_height')[0].points
 
   #discretisation for interpolation
@@ -338,7 +340,7 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
   
   return varmean_top
 
-def calculate_farm_data(DS_no, farm_diameter):
+def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   """Calculate wind farm variables
 
   Parameters
@@ -347,6 +349,8 @@ def calculate_farm_data(DS_no, farm_diameter):
     Data set number i.e. 'DS0'
   farm_diameter : int
     wind farm diameter in kilometres
+  z0 : str
+    wind farm roughness length (m)
 
   Returns
   -------
@@ -372,30 +376,30 @@ def calculate_farm_data(DS_no, farm_diameter):
   """
 
   #extract data
-  var_dict = load_NWP_data(DS_no, farm_diameter)
+  var_dict = load_NWP_data(DS_no, farm_diameter, z0)
 
   #information about farm CV
   cv_height = 250
   hubh = 100
 
   #with farm present
-  wind_dir = hubh_wind_dir(var_dict, var_dict['u'], var_dict['v'], farm_diameter, hubh)
-  u_mean = CV_average(var_dict, 'u', farm_diameter, cv_height)
-  v_mean = CV_average(var_dict, 'v', farm_diameter, cv_height)
-  taux_mean = surface_average(var_dict, 'taux', farm_diameter)
-  tauy_mean = surface_average(var_dict, 'tauy', farm_diameter)
+  wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
+  u_mean = CV_average(var_dict, 'u_mn', farm_diameter, cv_height)
+  v_mean = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
+  taux_mean = surface_average(var_dict, 'taux_mn', farm_diameter)
+  tauy_mean = surface_average(var_dict, 'tauy_mn', farm_diameter)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf = u_mean*np.cos(wind_dir) + v_mean*np.sin(wind_dir)
   # calculate surface stress in streamwise direction
   tauw = taux_mean*np.cos(wind_dir) + tauy_mean*np.sin(wind_dir)
 
   #without farm present
-  wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_0'], var_dict['v_0'], farm_diameter, hubh)
-  u_mean_0 = CV_average(var_dict, 'u_0', farm_diameter, cv_height)
-  v_mean_0 = CV_average(var_dict, 'v_0', farm_diameter, cv_height)
-  taux_mean_0 = surface_average(var_dict, 'taux_0', farm_diameter)
-  tauy_mean_0 = surface_average(var_dict, 'tauy_0', farm_diameter)
-  dens_mean_0 = CV_average(var_dict, 'dens_0', farm_diameter, cv_height)
+  wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
+  u_mean_0 = CV_average(var_dict, 'u_mn_0', farm_diameter, cv_height)
+  v_mean_0 = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
+  taux_mean_0 = surface_average(var_dict, 'taux_mn_0', farm_diameter)
+  tauy_mean_0 = surface_average(var_dict, 'tauy_mn_0', farm_diameter)
+  dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
   # calculate surface stress in streamwise direction
@@ -403,15 +407,14 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate natural friction coefficient
   cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
   #calculate Brunt Vaisala frequency (squared)
-  theta_mean_0 = CV_average(var_dict, 'theta_0', farm_diameter, cv_height)
-  theta_bottom_0 = surface_average(var_dict, 'theta_0', farm_diameter)
+  theta_mean_0 = CV_average(var_dict, 'theta_mn_0', farm_diameter, cv_height)
+  theta_bottom_0 = surface_average(var_dict, 'theta_mn_0', farm_diameter)
   #calculate froude number over 2 x CV height!
-  theta_top_0 = top_surface_average(var_dict, 'theta_0', farm_diameter, 2*cv_height)
+  theta_top_0 = top_surface_average(var_dict, 'theta_mn_0', farm_diameter, 2*cv_height)
   delta_theta = theta_top_0 - theta_bottom_0
   N_sq = (9.81/theta_mean_0)*(delta_theta/(2*cv_height))
   #calculate natural Froude number
   fr_0 = uf_0/(np.sqrt(N_sq)*cv_height)
-  rig_hubh_0 = top_surface_average(var_dict, 'rig_mn_0', farm_diameter, hubh)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -420,17 +423,21 @@ def calculate_farm_data(DS_no, farm_diameter):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0, fr_0, rig_hubh_0
+  return beta, M, zeta, cf_0, fr_0
 
 for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
-  for no in range(10):
+  for no in range(0):
     print(no)
-
-    beta, M, zeta, cf_0, fr_0, rig_hubh_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/fr0_DS{no}_{farm_diameter}.npy', fr_0)
-    np.save(f'data/rig0_DS{no}_{farm_diameter}.npy', rig_hubh_0)
+  
+for z0 in ['0p05', '0p1', '0p35', '0p7', '1p4']:
+  print(z0)
+  beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS1', 20, z0)
+  np.save(f'data/beta_DS1_20_{z0}.npy', beta)
+  np.save(f'data/M_DS1_20_{z0}.npy', M)
