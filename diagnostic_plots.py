@@ -6,25 +6,25 @@ import numpy as np
 from read_NWP_data import *
 import matplotlib.pyplot as plt
 
-DS_no = 'DS8'
-farm_diameter = 10
+DS_no = 'DS4'
+farm_diameter = 30
 hubh = 100
 cv_height=250
 
 var_dict = load_NWP_data(DS_no, farm_diameter)
-u = var_dict['u']
-v = var_dict['v']
-u_0 = var_dict['u_0']
-v_0 = var_dict['v_0']
-taux = var_dict['taux']
-tauy = var_dict['tauy']
-taux_0 = var_dict['taux_0']
-tauy_0 = var_dict['tauy_0']
-theta_0 = var_dict['theta_0']
+u = var_dict['u_mn']
+v = var_dict['v_mn']
+u_0 = var_dict['u_mn_0']
+v_0 = var_dict['v_mn_0']
+taux = var_dict['taux_mn']
+tauy = var_dict['tauy_mn']
+taux_0 = var_dict['taux_mn_0']
+tauy_0 = var_dict['tauy_mn_0']
+theta_0 = var_dict['theta_mn_0']
 
 #farm parameters
 mperdeg = 111132.02
-grid = var_dict['p'][0]
+grid = var_dict['u_mn'][0]
 zh = grid.coords('level_height')[0].points
 
 #discretisation for interpolation
@@ -84,16 +84,16 @@ for i, lat in enumerate(lats):
 
 thetamean_0 = np.mean(np.ma.array(theta_0.data[:,:,:,:], mask=mask), axis=(2,3))
 
-umean_func = CV_average(var_dict, 'u', farm_diameter, cv_height)
-umean0_func = CV_average(var_dict, 'u_0', farm_diameter, cv_height)
-vmean_func = CV_average(var_dict, 'v', farm_diameter, cv_height)
-vmean0_func = CV_average(var_dict, 'v_0', farm_diameter, cv_height)
-taux_func = surface_average(var_dict, 'taux', farm_diameter)
-tauy_func = surface_average(var_dict, 'tauy', farm_diameter)
-taux0_func = surface_average(var_dict, 'taux_0', farm_diameter)
-tauy0_func = surface_average(var_dict, 'tauy_0', farm_diameter)
-wind_dir = hubh_wind_dir(var_dict, var_dict['u'], var_dict['v'], farm_diameter, hubh)
-wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_0'], var_dict['v_0'], farm_diameter, hubh)
+umean_func = CV_average(var_dict, 'u_mn', farm_diameter, cv_height)
+umean0_func = CV_average(var_dict, 'u_mn_0', farm_diameter, cv_height)
+vmean_func = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
+vmean0_func = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
+taux_func = surface_average(var_dict, 'taux_mn', farm_diameter)
+tauy_func = surface_average(var_dict, 'tauy_mn', farm_diameter)
+taux0_func = surface_average(var_dict, 'taux_mn_0', farm_diameter)
+tauy0_func = surface_average(var_dict, 'tauy_mn_0', farm_diameter)
+wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
+wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
 print(umean_func[23])
 print(umean0_func[23])
 print(vmean_func[23])
@@ -106,26 +106,30 @@ print(tauy_func[23])
 print(tauy0_func[23])
 print(calculate_farm_data(DS_no, farm_diameter))
 
+zeta = np.load(f'data/zeta_{DS_no}_{farm_diameter}.npy')
+cf0 = np.load(f'data/cf0_{DS_no}_{farm_diameter}.npy')
+
 for i in range(24):
     plt.figure()
-    plt.plot(tauxmean_0[i,:], zh, label='taux_0', color='blue')
-    plt.plot(tauymean_0[i,:], zh, label='tauy_0', color='blue', linestyle='--')
-    plt.xlabel('Velocity (m/s)')
+    plt.title(str(round(zeta[i],1))+'    '+str(round(cf0[i],4)))
+    plt.plot(np.sqrt(tauxmean_0[i,:]**2+tauymean_0[i,:]**2), zh, label='taux_0', color='blue')
+    plt.xlabel('Shear stress (m/s)')
     plt.ylabel('Height (m)')
-    plt.legend()
     plt.ylim([0,1000])
-    plt.xlim([-2,2])
+    plt.xlim([-0.1,0.5])
     plt.savefig(f'plots/stress_profiles_{DS_no}_{i}.png')
     plt.close()
 
-grid = var_dict['theta_0'][0]
+grid = var_dict['theta_mn_0'][0]
 zh = grid.coords('level_height')[0].points
 
 for i in range(24):
     plt.figure()
-    plt.plot(thetamean_0[i,:], zh, label='taux', color='blue')
+    plt.title(str(round(zeta[i],1))+'    '+str(round(cf0[i],4)))
+    plt.plot(thetamean_0[i,:]-thetamean_0[i,0], zh, label='taux', color='blue')
     plt.xlabel(r'$\theta$ (K)')
     plt.ylabel('Height (m)')
     plt.ylim([0,1000])
+    plt.xlim([0,10])
     plt.savefig(f'plots/theta_profiles_{DS_no}_{i}.png')
     plt.close()
