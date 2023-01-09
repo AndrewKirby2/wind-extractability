@@ -132,3 +132,5 @@ dmypy.json
 plots/
 
 data/
+
+archive/

@@ -436,7 +436,7 @@ for farm_diameter in [10,15,20,25,30]:
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/fr0_DS{no}_{farm_diameter}.npy', fr_0)
   
-for z0 in ['0p05', '0p1', '0p35', '0p7', '1p4']:
+for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
   print(z0)
   beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS1', 20, z0)
   np.save(f'data/beta_DS1_20_{z0}.npy', beta)
