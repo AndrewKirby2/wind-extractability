@@ -275,6 +275,61 @@ def surface_average(var_dict, var, farm_diameter):
   
   return varmean_surface.data
 
+def farm_vertical_profile(var_dict, var, farm_diameter):
+  """Calculate vertical profiles of horizontally averaged
+  fields within wind farm area
+
+  Parameters
+  ----------
+  var_dict : iris Cube
+    dictionary containing data extracted from NWP simulations
+  var : str
+    name of variable to be averaged i.e. 'u' or 'u_0'
+  farm_diameter : int
+    wind farm diameter in kilometres
+  cv_height : int
+    height of control volume in metres
+
+  Returns
+  -------
+  var_profile : numpy array (size (24, variable) )
+    vertical profile of horizontally averaged variable
+  heights : numpy array (size (24, variable) )
+    heights above surface for vertical profile
+  """
+  #farm parameters
+  mperdeg = 111132.02
+  grid = var_dict[var][0]
+  heights = grid.coords('level_height')[0].points
+
+  #discretisation for interpolation
+  n_lats = 200
+  n_lons = 200
+
+  lats = np.linspace(-1,1,n_lats)
+  lons = np.linspace(359,361, n_lons)
+  variable = var_dict[var]
+  variable = variable.interpolate([('grid_latitude', lats),('grid_longitude', lons)], iris.analysis.Linear())
+
+  #mask all data points outside of wind farm CV
+  mask = np.full(variable[:,:,:,:].shape, True)
+  c_lat = 0.0135 # centre of domain (lats[-1] is last value)
+  c_lon = 360.0135 # centre of domain
+  count = 0
+  for i, lat in enumerate(lats):
+      dlat = lat - c_lat
+      for j, lon in enumerate(lons):
+          dlon = lon - c_lon
+          d = np.sqrt(dlat*dlat + dlon*dlon)
+          if d <= (1000*farm_diameter/2./mperdeg):
+              mask[:,:,i,j] = False
+              count += 1
+
+  #average valid points in the horizontal direction at the lowest model level
+  var_profile = np.mean(np.ma.array(variable.data[:,:,:,:], mask=mask[:,:,:,:]), axis=(2,3))
+
+  return var_profile, heights
+
 def top_surface_average(var_dict, var, farm_diameter, cv_height):
   """Calculate average of quantity across top surface
     of control volume

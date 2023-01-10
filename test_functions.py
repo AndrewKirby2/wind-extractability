@@ -64,3 +64,15 @@ def test_surface_average():
     taux_0.data[:,0,:,:] = 5.0
     varmean_surface = surface_average(var_dict, 'taux_mn_0', 20)
     npt.assert_array_equal(varmean_surface, 5.0*np.ones(24))
+
+def test_vertical_profile():
+    """Test vertical profile function
+    """
+    var_dict = load_NWP_data('DS7', 10)
+    theta_0 = var_dict['theta_mn_0']
+    theta_0.data[:,0,:,:] = 275.0
+    theta_0.data[:,6,:,:] = 280.0
+    theta_profile, heights = farm_vertical_profile(var_dict, 'theta_mn_0', 10)
+    npt.assert_array_equal(theta_profile[:,0], 275.0*np.ones(24))
+    theta_profile, heights = farm_vertical_profile(var_dict, 'theta_mn_0', 10)
+    npt.assert_array_equal(theta_profile[:,6], 280.0*np.ones(24))
