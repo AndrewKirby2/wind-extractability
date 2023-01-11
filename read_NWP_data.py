@@ -294,7 +294,7 @@ def farm_vertical_profile(var_dict, var, farm_diameter):
   -------
   var_profile : numpy array (size (24, variable) )
     vertical profile of horizontally averaged variable
-  heights : numpy array (size (24, variable) )
+  heights : numpy array (size (variable) )
     heights above surface for vertical profile
   """
   #farm parameters
@@ -329,6 +329,35 @@ def farm_vertical_profile(var_dict, var, farm_diameter):
   var_profile = np.mean(np.ma.array(variable.data[:,:,:,:], mask=mask[:,:,:,:]), axis=(2,3))
 
   return var_profile, heights
+
+def neutral_layer_height(theta_profile, theta_heights):
+  """Estimates height of the neutral layer which is
+  used for the calculation of the Froude number
+  (where theta is 0.2K higher than surface value)
+
+  Parameters
+  ----------
+  theta_profile : numpy array (size (24,41))
+    vertical profile of theta
+  theta_heights : numpy array (size 41)
+    height above surface for theta vertical profile
+
+  Returns:
+  layer_height : numpy array (size 24)
+    heights of the neutral layer height
+  """
+  #array to store results
+  layer_height = np.zeros(24)
+  #loop over time periods
+  for i in range(24):
+    sc = sp.interpolate.CubicSpline(theta_heights, theta_profile[i,:])
+    interp_heights = np.arange(0,2000,1)
+    theta_profile_interp = sc(interp_heights)
+    #find index where theta is first 0.2K higher than surface value
+    index = np.argmax(theta_profile_interp-theta_profile[i,0]>0.2)
+    print(index)
+    layer_height[i] = interp_heights[index]
+  return layer_height
 
 def top_surface_average(var_dict, var, farm_diameter, cv_height):
   """Calculate average of quantity across top surface
