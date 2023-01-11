@@ -333,7 +333,7 @@ def farm_vertical_profile(var_dict, var, farm_diameter):
 def neutral_layer_height(theta_profile, theta_heights):
   """Estimates height of the neutral layer which is
   used for the calculation of the Froude number
-  (where theta is 0.2K higher than surface value)
+  (where N_sq is greater than 1e-6)
 
   Parameters
   ----------
@@ -345,19 +345,56 @@ def neutral_layer_height(theta_profile, theta_heights):
   Returns:
   layer_height : numpy array (size 24)
     heights of the neutral layer height
+  theta_profile_interp : numpy array (size (24,4001))
+    interpolated theta vertical profile
+  interp_heights : numpy array (size 4001)
+    heights for interpolated theta vertical profile
   """
   #array to store results
   layer_height = np.zeros(24)
+  theta_profile_interp = np.zeros((24,4001))
   #loop over time periods
   for i in range(24):
     sc = sp.interpolate.CubicSpline(theta_heights, theta_profile[i,:])
-    interp_heights = np.arange(0,2000,1)
-    theta_profile_interp = sc(interp_heights)
+    interp_heights = np.arange(0,4001,1)
+    theta_profile_interp[i,:] = sc(interp_heights)
+    theta_grad = np.gradient(theta_profile[i,:], theta_heights)
+    N_sq = (9.81/theta_profile_interp[i,0])*theta_grad
     #find index where theta is first 0.2K higher than surface value
-    index = np.argmax(theta_profile_interp-theta_profile[i,0]>0.2)
-    print(index)
-    layer_height[i] = interp_heights[index]
-  return layer_height
+    index = np.argmax(N_sq > 1e-6)
+    layer_height[i] = theta_heights[index]
+  return layer_height, theta_profile_interp, interp_heights
+
+def calculate_fr_number(uf_0, hubh, neutral_layer_height, theta_profile, interp_heights):
+  """ Calculate Froude number based on iterative procedure
+  described in Vosper et. al. 2009 DOI: 10.1002/qj.407
+  """
+  #array to store results
+  froude_number = np.zeros(24)
+  #loop over time periods
+  for i in range(24):
+    #initial guess of bulk averaging layer depth
+    N_0 = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,1000]-theta_profile[i,0])/1000)
+    D_prev = max(hubh, neutral_layer_height[i])  + (uf_0[i]/N_0)
+    N_prev = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_prev)
+    #update guess
+    D_next = max(hubh, 1.0*neutral_layer_height[i]) + (uf_0[i]/N_prev)
+    D_next = min(D_next,4000)
+    N_next = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_next)
+    #iterate procedure until D has converged
+    count = 0
+    while (np.abs(D_next - D_prev) > 2.0 and count < 50):
+      D_prev = D_next
+      N_prev = N_next
+      D_next = max(hubh, neutral_layer_height[i]) + (uf_0[i]/N_prev)
+      D_next = min(D_next,4000)
+      N_next = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_next)
+      count += 1
+    froude_number[i] = uf_0[i]/(N_next*hubh)
+    print(count)
+  return froude_number
+
+  
 
 def top_surface_average(var_dict, var, farm_diameter, cv_height):
   """Calculate average of quantity across top surface
