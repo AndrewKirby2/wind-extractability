@@ -214,7 +214,7 @@ def CV_average(var_dict, var, farm_diameter, cv_height):
   for i in range(24):
 
     #interpolate velocity at turbine hub height
-    z_interp = np.linspace(0, cv_height, cv_height+1)
+    z_interp = np.linspace(0, cv_height, round(cv_height+1))
     sc = sp.interpolate.CubicSpline(zh_full, varmean_full[i,:])
     var_interp = sc(z_interp)
 
@@ -363,35 +363,99 @@ def neutral_layer_height(theta_profile, theta_heights):
     #find index where theta is first 0.2K higher than surface value
     index = np.argmax(N_sq > 1e-6)
     layer_height[i] = theta_heights[index]
-  return layer_height, theta_profile_interp, interp_heights
+  return layer_height
 
-def calculate_fr_number(uf_0, hubh, neutral_layer_height, theta_profile, interp_heights):
+def calculate_fr_number(var_dict, neutral_layer_height, wind_dir_0, hubh, farm_diameter):
   """ Calculate Froude number based on iterative procedure
   described in Vosper et. al. 2009 DOI: 10.1002/qj.407
   """
+  #maximum change in z_av
+  delta_z_max = 500
+  max_iter = 20
+  #calculate u and v vertical profiles
+  u_profile, u_heights = farm_vertical_profile(var_dict, 'u_mn_0', farm_diameter)
+  v_profile, v_heights = farm_vertical_profile(var_dict, 'v_mn_0', farm_diameter)
+  theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
   #array to store results
   froude_number = np.zeros(24)
   #loop over time periods
   for i in range(24):
     #initial guess of bulk averaging layer depth
-    N_0 = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,1000]-theta_profile[i,0])/1000)
-    D_prev = max(hubh, neutral_layer_height[i])  + (uf_0[i]/N_0)
-    N_prev = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_prev)
-    #update guess
-    D_next = max(hubh, 1.0*neutral_layer_height[i]) + (uf_0[i]/N_prev)
-    D_next = min(D_next,4000)
-    N_next = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_next)
-    #iterate procedure until D has converged
-    count = 0
-    while (np.abs(D_next - D_prev) > 2.0 and count < 50):
-      D_prev = D_next
-      N_prev = N_next
-      D_next = max(hubh, neutral_layer_height[i]) + (uf_0[i]/N_prev)
-      D_next = min(D_next,4000)
-      N_next = np.sqrt((9.81/theta_profile[i,0])*(theta_profile[i,int(D_prev)]-theta_profile[i,0])/D_next)
-      count += 1
-    froude_number[i] = uf_0[i]/(N_next*hubh)
-    print(count)
+    z_av = max(neutral_layer_height[i], hubh)
+
+    #height for integration
+    z_int = np.linspace(0, z_av, int(z_av))
+
+    #interpolate and integrate
+    sc = sp.interpolate.CubicSpline(u_heights, u_profile[i,:])
+    u_interp = sc(z_int)
+    sc = sp.interpolate.CubicSpline(v_heights, v_profile[i,:])
+    v_interp = sc(z_int)
+    u_av = sp.integrate.trapz(u_interp, z_int)/z_av
+    v_av = sp.integrate.trapz(v_interp, z_int)/z_av
+    sc = sp.interpolate.CubicSpline(theta_heights, theta_profile[i,:])
+
+    #calculate bulk average bouyancy
+    theta_top = sc(z_av)
+    N_sq = (9.80665/theta_profile[i,0])*(theta_top-theta_profile[i,0])/z_av
+    if N_sq < 0:
+      n_av = 1e-3
+    else:
+      n_av = np.sqrt(N_sq)
+
+    #depth averaged wind in hub height direction
+    wind = u_av*np.cos(wind_dir_0[i]) + v_av*np.sin(wind_dir_0[i])
+
+    #maximum change per iteration
+    if wind/n_av > delta_z_max:
+      z_av_new = max(neutral_layer_height[i], hubh) + delta_z_max
+    else:
+      z_av_new = max(neutral_layer_height[i], hubh) + wind/(max(n_av,1e-3))
+    
+    print(z_av, z_av_new, wind, n_av, wind/n_av)
+
+    #iterate until change is less than 5% or 5 iteractions
+    iter_count = 0
+    while (np.abs(z_av_new-z_av)/z_av > 0.05 and iter_count < max_iter):
+
+      z_av = z_av_new
+      #height for integration
+      z_int = np.linspace(0, z_av, int(z_av))
+
+      #interpolate and integrate
+      sc = sp.interpolate.CubicSpline(u_heights, u_profile[i,:])
+      u_interp = sc(z_int)
+      sc = sp.interpolate.CubicSpline(v_heights, v_profile[i,:])
+      v_interp = sc(z_int)
+      u_av = sp.integrate.trapz(u_interp, z_int)/z_av
+      v_av = sp.integrate.trapz(v_interp, z_int)/z_av
+      sc = sp.interpolate.CubicSpline(theta_heights, theta_profile[i,:])
+
+      #calculate bulk average bouyancy
+      theta_top = sc(z_av)
+      N_sq = (9.80665/theta_profile[i,0])*(theta_top-theta_profile[i,0])/z_av
+      if N_sq < 0:
+        n_av = 1e-3
+      else:
+        n_av = np.sqrt(N_sq)
+
+      #depth averaged wind in hub height direction
+      wind = u_av*np.cos(wind_dir_0[i]) + v_av*np.sin(wind_dir_0[i])
+
+      #maximum change per iteration
+      z_av_new = max(neutral_layer_height[i], hubh) + wind/(max(n_av,1e-3))
+      if z_av_new - z_av > delta_z_max:
+        z_av_new = z_av + delta_z_max
+
+      print(z_av, z_av_new, wind, n_av, wind/n_av)
+
+      iter_count += 1
+      if iter_count == max_iter:
+        print('Not converged')
+    
+    froude_number[i] = wind / (n_av*hubh)
+
+
   return froude_number
 
   
