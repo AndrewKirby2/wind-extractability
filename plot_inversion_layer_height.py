@@ -6,7 +6,7 @@ import numpy as np
 from read_NWP_data import *
 import matplotlib.pyplot as plt
 
-DS_no = 2
+DS_no = 9
 var_dict = load_NWP_data(f'DS{DS_no}', 30)
 
 theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', 30)
@@ -29,6 +29,5 @@ var_dict = load_NWP_data(f'DS{DS_no}', 30)
 wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
 theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', 30)
 neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
-print(neu_layer_height)
 fr = calculate_fr_number(var_dict, neu_layer_height, wind_dir_0, hubh, farm_diameter)
 print(fr)

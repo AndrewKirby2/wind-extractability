@@ -370,8 +370,8 @@ def calculate_fr_number(var_dict, neutral_layer_height, wind_dir_0, hubh, farm_d
   described in Vosper et. al. 2009 DOI: 10.1002/qj.407
   """
   #maximum change in z_av
-  delta_z_max = 500
-  max_iter = 20
+  delta_z_max = 5
+  max_iter = 2000
   #calculate u and v vertical profiles
   u_profile, u_heights = farm_vertical_profile(var_dict, 'u_mn_0', farm_diameter)
   v_profile, v_heights = farm_vertical_profile(var_dict, 'v_mn_0', farm_diameter)
@@ -409,14 +409,14 @@ def calculate_fr_number(var_dict, neutral_layer_height, wind_dir_0, hubh, farm_d
     #maximum change per iteration
     if wind/n_av > delta_z_max:
       z_av_new = max(neutral_layer_height[i], hubh) + delta_z_max
+    elif wind/n_av < -delta_z_max:
+      z_av_new = max(neutral_layer_height[i], hubh) - delta_z_max
     else:
       z_av_new = max(neutral_layer_height[i], hubh) + wind/(max(n_av,1e-3))
-    
-    print(z_av, z_av_new, wind, n_av, wind/n_av)
 
-    #iterate until change is less than 5% or 5 iteractions
+    #iterate until change is less than 0.25% or max_iter iteractions
     iter_count = 0
-    while (np.abs(z_av_new-z_av)/z_av > 0.05 and iter_count < max_iter):
+    while (np.abs(z_av_new-z_av)/z_av > 0.0025 and iter_count < max_iter):
 
       z_av = z_av_new
       #height for integration
@@ -446,15 +446,14 @@ def calculate_fr_number(var_dict, neutral_layer_height, wind_dir_0, hubh, farm_d
       z_av_new = max(neutral_layer_height[i], hubh) + wind/(max(n_av,1e-3))
       if z_av_new - z_av > delta_z_max:
         z_av_new = z_av + delta_z_max
-
-      print(z_av, z_av_new, wind, n_av, wind/n_av)
+      elif z_av_new - z_av < -delta_z_max:
+        z_av_new = z_av - delta_z_max
 
       iter_count += 1
       if iter_count == max_iter:
-        print('Not converged')
+        print('Froude number calculation not converged',i)
     
     froude_number[i] = wind / (n_av*hubh)
-
 
   return froude_number
 
@@ -591,15 +590,10 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
   #calculate natural friction coefficient
   cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
-  #calculate Brunt Vaisala frequency (squared)
-  theta_mean_0 = CV_average(var_dict, 'theta_mn_0', farm_diameter, cv_height)
-  theta_bottom_0 = surface_average(var_dict, 'theta_mn_0', farm_diameter)
-  #calculate froude number over 2 x CV height!
-  theta_top_0 = top_surface_average(var_dict, 'theta_mn_0', farm_diameter, 2*cv_height)
-  delta_theta = theta_top_0 - theta_bottom_0
-  N_sq = (9.81/theta_mean_0)*(delta_theta/(2*cv_height))
   #calculate natural Froude number
-  fr_0 = uf_0/(np.sqrt(N_sq)*cv_height)
+  theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
+  neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
+  fr_0 = calculate_fr_number(var_dict, neu_layer_height, wind_dir_0, hubh, farm_diameter)
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -612,9 +606,10 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
 
 for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
-  for no in range(0):
+  for no in range(10):
     print(no)
     beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    print(fr_0)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)

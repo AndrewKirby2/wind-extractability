@@ -24,13 +24,17 @@ plt.legend()
 plt.savefig('plots/zeta_histogram.png')
 plt.close()
 
-for size in farm_diameters:
-    zeta = np.load(f'data/zeta_DS8_{size}.npy')
-    plt.plot(range(24), zeta, label=str(size)+'km')
-plt.ylabel(r'$\zeta$')
-plt.xlabel(r'Time (h)')
+for no in range(10):
+    zeta = np.load(f'data/zeta_DS{no}_30.npy')
+    cf0 = np.load(f'data/cf0_DS{no}_30.npy')
+    fr0 = np.load(f'data/fr0_DS{no}_30.npy')
+    cond = np.logical_and(zeta>0, zeta<40)
+    cbar = plt.scatter(fr0[cond], cf0[cond], c=zeta[cond], vmin=0, vmax=40)
+plt.ylabel(r'$C_{f0}$')
+plt.xlabel(r'$Fr_0$')
+plt.colorbar()
 plt.legend()
-plt.savefig(f'plots/zeta_DS8.png')
+plt.savefig(f'plots/zeta_30km_fr_iter.png')
 plt.close()
 
 for no in range(10):
