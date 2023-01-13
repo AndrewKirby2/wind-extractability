@@ -27,7 +27,7 @@ def load_NWP_data(DS_no, farm_diameter, z0='0p1'):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u_mn', 'v_mn', 'taux_mn', 'tauy_mn', 'dens_mn', 'theta_mn']
+  fn_vars = ['u_mn', 'v_mn', 'taux_mn', 'tauy_mn', 'dens_mn', 'theta_mn', 'rig_mn']
 
   #create dictionary of extract data
   var_dict = dict()
@@ -606,7 +606,7 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
 
 for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
-  for no in range(10):
+  for no in range(0):
     print(no)
     beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     print(fr_0)

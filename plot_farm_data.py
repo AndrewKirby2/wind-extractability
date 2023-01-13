@@ -3,7 +3,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import sklearn.metrics as sk
+from read_NWP_data import *
 
 #array to store results for histogram
 zeta = np.zeros((5,240))
@@ -24,18 +26,35 @@ plt.legend()
 plt.savefig('plots/zeta_histogram.png')
 plt.close()
 
-for no in range(10):
-    zeta = np.load(f'data/zeta_DS{no}_30.npy')
-    cf0 = np.load(f'data/cf0_DS{no}_30.npy')
-    fr0 = np.load(f'data/fr0_DS{no}_30.npy')
-    cond = np.logical_and(zeta>0, zeta<40)
-    cbar = plt.scatter(fr0[cond], cf0[cond], c=zeta[cond], vmin=0, vmax=40)
-plt.ylabel(r'$C_{f0}$')
-plt.xlabel(r'$Fr_0$')
-plt.colorbar()
-plt.legend()
-plt.savefig(f'plots/zeta_30km_fr_iter.png')
-plt.close()
+for cf0_min in np.arange(0.001,0.0025,0.0001):
+    print(cf0_min)
+    cf0_max = cf0_min + 0.0001
+    norm = mpl.colors.Normalize(vmin=0, vmax=35)
+    cmap = mpl.cm.ScalarMappable(norm=norm, cmap=mpl.cm.viridis)
+    cmap.set_array([])
+
+    for no in range(10):
+        print(no)
+        zeta = np.load(f'data/zeta_DS{no}_30.npy')
+        cf0 = np.load(f'data/cf0_DS{no}_30.npy')
+        cond1 = np.logical_and(cf0>cf0_min,cf0<cf0_max)
+        cond2 = np.logical_and(zeta>0,zeta<35)
+        cond = np.logical_and(cond1, cond2)
+        var_dict = load_NWP_data(f'DS{no}', 30)
+        rig_profile, rig_heights = farm_vertical_profile(var_dict, 'rig_mn_0', 30)
+        for i in range(24):
+            if cond[i]:
+                print(cf0[i])
+                plt.plot( rig_profile[i,:], rig_heights, color=cmap.to_rgba(zeta[i]))
+
+    plt.ylabel(r'Height (m)')
+    plt.xlabel(r'$Ri_g$')
+    cbar = plt.colorbar(cmap)
+    cbar.set_label('$\zeta$')
+    plt.xlim([-2, 2])
+    plt.ylim([0, 1000])
+    plt.savefig(f'plots/zeta_30km_cf0_{np.round(cf0_min,4)}_to_{np.round(cf0_max,4)}.png')
+    plt.close()
 
 for no in range(10):
     print(f'Mean absolute percentage errors for DS{no} (%)')
