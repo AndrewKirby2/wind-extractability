@@ -47,3 +47,19 @@ for i in range(4):
         ax[i].set_xlabel(r'$1-\beta$')
 ax[0].set_ylabel(r'$M-1$')
 plt.savefig('plots/M_vs_beta_plots.png')
+
+#calculate difference between volume-averaged and hub height averaged beta values
+error_beta = 0
+error_zeta = 0
+for farm_diameter in [10, 15, 20, 25, 30]:
+    for i in range(10):
+        beta_vol = np.load(f'data/beta_DS{i}_{farm_diameter}.npy')
+        beta_hubh = np.load(f'data_hubh/beta_DS{i}_{farm_diameter}.npy')
+        zeta_vol = np.load(f'data/zeta_DS{i}_{farm_diameter}.npy')
+        zeta_hubh = np.load(f'data_hubh/zeta_DS{i}_{farm_diameter}.npy')
+        error_beta += sk.mean_absolute_percentage_error(beta_vol, beta_hubh)
+        error_zeta += sk.mean_absolute_error(zeta_vol, zeta_hubh)
+error_beta = error_beta/50
+error_zeta = error_zeta/50
+print(error_beta)
+print(error_zeta)
