@@ -584,6 +584,7 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   taux_mean_0 = surface_average(var_dict, 'taux_mn_0', farm_diameter)
   tauy_mean_0 = surface_average(var_dict, 'tauy_mn_0', farm_diameter)
   dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
+  rig_0 = top_surface_average(var_dict, 'rig_mn_0', farm_diameter, cv_height)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
   # calculate surface stress in streamwise direction
@@ -593,6 +594,7 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   #calculate natural Froude number
   theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
   neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
+  #calculate hub height gradient Richardson number
   fr_0 = calculate_fr_number(var_dict, neu_layer_height, wind_dir_0, hubh, farm_diameter)
 
   #calculate farm wind-speed reduction factor \beta
@@ -602,19 +604,20 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0, fr_0
+  return beta, M, zeta, cf_0, fr_0, rig_0
 
 for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
   for no in range(0):
     print(no)
-    beta, M, zeta, cf_0, fr_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, fr_0, rig_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     print(fr_0)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/fr0_DS{no}_{farm_diameter}.npy', fr_0)
+    np.save(f'data/rig0_DS{no}_{farm_diameter}.npy', rig_0)
   
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
   print(z0)

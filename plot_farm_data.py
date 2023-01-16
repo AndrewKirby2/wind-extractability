@@ -26,6 +26,22 @@ plt.legend()
 plt.savefig('plots/zeta_histogram.png')
 plt.close()
 
+for no in range(10):
+    zeta = np.load(f'data/zeta_DS{no}_30.npy')
+    cf0 = np.load(f'data/cf0_DS{no}_30.npy')
+    fr_0 = np.load(f'data/fr0_DS{no}_30.npy')
+    cond = np.logical_and(zeta>0,zeta<35)
+    hubh = 100
+    var_dict = load_NWP_data(f'DS{no}', 30)
+    wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
+    taux_0 = surface_average(var_dict, 'taux_mn_0', 30)
+    tauy_0 = surface_average(var_dict, 'tauy_mn_0', 30)
+    tauw_0= taux_0*np.cos(wind_dir_0) + tauy_0*np.sin(wind_dir_0)
+    plt.scatter(tauw_0[cond], fr_0[cond], c=zeta[cond], vmin=0, vmax=35)
+plt.xlim([0,1])
+plt.savefig('plots/zeta_30km_cf0_fr0.png')
+plt.close()
+
 for cf0_min in np.arange(0.001,0.0025,0.0001):
     print(cf0_min)
     cf0_max = cf0_min + 0.0001
@@ -41,18 +57,24 @@ for cf0_min in np.arange(0.001,0.0025,0.0001):
         cond2 = np.logical_and(zeta>0,zeta<35)
         cond = np.logical_and(cond1, cond2)
         var_dict = load_NWP_data(f'DS{no}', 30)
-        rig_profile, rig_heights = farm_vertical_profile(var_dict, 'rig_mn_0', 30)
+        hubh = 100
+        wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
+        taux_profile, taux_heights = farm_vertical_profile(var_dict, 'taux_mn_0', 30)
+        tauy_profile, tauy_heights = farm_vertical_profile(var_dict, 'tauy_mn_0', 30)
+
+
         for i in range(24):
             if cond[i]:
                 print(cf0[i])
-                plt.plot( rig_profile[i,:], rig_heights, color=cmap.to_rgba(zeta[i]))
+                tau_profile = taux_profile[i,:]*np.cos(wind_dir_0[i]) + tauy_profile[i,:]*np.sin(wind_dir_0[i])
+                plt.plot(tau_profile, taux_heights, color=cmap.to_rgba(zeta[i]))
 
     plt.ylabel(r'Height (m)')
-    plt.xlabel(r'$Ri_g$')
+    plt.xlabel(r'$\theta-\theta_0$')
     cbar = plt.colorbar(cmap)
     cbar.set_label('$\zeta$')
-    plt.xlim([-2, 2])
-    plt.ylim([0, 1000])
+    plt.xlim([0, 1])
+    plt.ylim([0, 500])
     plt.savefig(f'plots/zeta_30km_cf0_{np.round(cf0_min,4)}_to_{np.round(cf0_max,4)}.png')
     plt.close()
 
