@@ -65,6 +65,21 @@ def test_surface_average():
     varmean_surface = surface_average(var_dict, 'taux_mn_0', 20)
     npt.assert_array_equal(varmean_surface, 5.0*np.ones(24))
 
+def test_top_surface_average():
+    """ Test surface average function
+    """
+    var_dict = load_NWP_data('DS5',10)
+    zh = var_dict['u_mn'].coords('level_height')[0].points
+    for i in range(40):
+        var_dict['v_mn_0'].data[:,i,:,:] = 10*np.log(zh[i])/np.log(100)
+    varmean_cv = top_surface_average(var_dict, 'v_mn_0', 10, 250)
+    npt.assert_allclose(varmean_cv, 11.98970*np.ones(24), rtol=0.005)
+    zh = var_dict['theta_mn_0'].coords('level_height')[0].points
+    for i in range(40):
+        var_dict['theta_mn_0'].data[:,i,:,:] = 280+0.005*zh[i]
+    varmean_cv = top_surface_average(var_dict, 'theta_mn_0', 10, 100)
+    npt.assert_allclose(varmean_cv, 280.5*np.ones(24), rtol=0.005)
+
 def test_vertical_profile():
     """Test vertical profile function
     """

@@ -15,7 +15,7 @@ farm_diameters = [10,15,20,25,30]
 for i in range(5):
     farm_diameter = farm_diameters[i]
     for no in range(10):
-        zeta[i,24*no:24*(no+1)] = np.load(f'data/zeta_DS{no}_{farm_diameter}.npy')
+        zeta[i,24*no:24*(no+1)] = np.load(f'data_hubh/zeta_DS{no}_{farm_diameter}.npy')
 
 for i in [0, 2, 4]:
     plt.hist(zeta[i,:], density=True, range=(0,80), bins=25, histtype=u'step', label=str(farm_diameters[i])+' km')
@@ -26,76 +26,24 @@ plt.legend()
 plt.savefig('plots/zeta_histogram.png')
 plt.close()
 
-for no in range(10):
-    zeta = np.load(f'data/zeta_DS{no}_30.npy')
-    cf0 = np.load(f'data/cf0_DS{no}_30.npy')
-    fr_0 = np.load(f'data/fr0_DS{no}_30.npy')
-    cond = np.logical_and(zeta>0,zeta<35)
-    hubh = 100
-    var_dict = load_NWP_data(f'DS{no}', 30)
-    wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
-    taux_0 = surface_average(var_dict, 'taux_mn_0', 30)
-    tauy_0 = surface_average(var_dict, 'tauy_mn_0', 30)
-    tauw_0= taux_0*np.cos(wind_dir_0) + tauy_0*np.sin(wind_dir_0)
-    plt.scatter(tauw_0[cond], fr_0[cond], c=zeta[cond], vmin=0, vmax=35)
-plt.xlim([0,1])
-plt.savefig('plots/zeta_30km_cf0_fr0.png')
-plt.close()
+fig, ax = plt.subplots(ncols=4, figsize=[16,4])
 
-for cf0_min in np.arange(0.001,0.0025,0.0001):
-    print(cf0_min)
-    cf0_max = cf0_min + 0.0001
-    norm = mpl.colors.Normalize(vmin=0, vmax=35)
-    cmap = mpl.cm.ScalarMappable(norm=norm, cmap=mpl.cm.viridis)
-    cmap.set_array([])
+#empty arrays to store results
+M = np.ones((6,24))
+beta = np.ones((6,24))
 
-    for no in range(10):
-        print(no)
-        zeta = np.load(f'data/zeta_DS{no}_30.npy')
-        cf0 = np.load(f'data/cf0_DS{no}_30.npy')
-        cond1 = np.logical_and(cf0>cf0_min,cf0<cf0_max)
-        cond2 = np.logical_and(zeta>0,zeta<35)
-        cond = np.logical_and(cond1, cond2)
-        var_dict = load_NWP_data(f'DS{no}', 30)
-        hubh = 100
-        wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
-        taux_profile, taux_heights = farm_vertical_profile(var_dict, 'taux_mn_0', 30)
-        tauy_profile, tauy_heights = farm_vertical_profile(var_dict, 'tauy_mn_0', 30)
+#load results for different roughness lengths
+z0 = ['0p05', '0p1', '0p35', '0p7', '1p4']
+for i in range(5):
+    M[i+1,:] = np.load(f'data_hubh/M_DS1_20_{z0[i]}.npy')
+    beta[i+1,:] = np.load(f'data_hubh/beta_DS1_20_{z0[i]}.npy')
 
-
-        for i in range(24):
-            if cond[i]:
-                print(cf0[i])
-                tau_profile = taux_profile[i,:]*np.cos(wind_dir_0[i]) + tauy_profile[i,:]*np.sin(wind_dir_0[i])
-                plt.plot(tau_profile, taux_heights, color=cmap.to_rgba(zeta[i]))
-
-    plt.ylabel(r'Height (m)')
-    plt.xlabel(r'$\theta-\theta_0$')
-    cbar = plt.colorbar(cmap)
-    cbar.set_label('$\zeta$')
-    plt.xlim([0, 1])
-    plt.ylim([0, 500])
-    plt.savefig(f'plots/zeta_30km_cf0_{np.round(cf0_min,4)}_to_{np.round(cf0_max,4)}.png')
-    plt.close()
-
-for no in range(10):
-    print(f'Mean absolute percentage errors for DS{no} (%)')
-
-    print("{:<10} {:<10} {:<10} {:<10} {:<10}".format('Size (km)','zeta','beta','1/(1-beta)','M-1'))
-    #calculate difference between old and new methods
-    for farm_diameter in [10,15,20,25,30]:
-        #load data from new calculations
-        zeta_new = np.load(f'data/zeta_DS{no}_{farm_diameter}.npy')
-        beta_new = np.load(f'data/beta_DS{no}_{farm_diameter}.npy')
-        M_new = np.load(f'data/M_DS{no}_{farm_diameter}.npy')
-        #load data from old calculations
-        tmp = np.atleast_1d(np.load(f'../../part1_turbines/UM_farm_data/data/zeta_DS{no}.npy', allow_pickle=True))
-        zeta_old = tmp[0][farm_diameter]
-        tmp = np.atleast_1d(np.load(f'../../part1_turbines/UM_farm_data/data/beta_DS{no}.npy', allow_pickle=True))
-        beta_old = tmp[0][farm_diameter]
-        tmp = np.atleast_1d(np.load(f'../../part1_turbines/UM_farm_data/data/M_DS{no}.npy', allow_pickle=True))
-        M_old = tmp[0][farm_diameter]
-        print("{:<10} {:<10} {:<10} {:<10} {:<10}".format(farm_diameter,round(100*sk.mean_absolute_percentage_error(zeta_new,zeta_old),1),
-            round(100*sk.mean_absolute_percentage_error(beta_new,beta_old),1),
-            round(100*sk.mean_absolute_percentage_error(1.0/(1.0-beta_new),1.0/(1.0-beta_old)),1),
-            round(100*sk.mean_absolute_percentage_error(1.0-M_new,1.0-M_old),1)))
+#plots results
+for i in range(4):
+    for j in range(6):
+        ax[i].plot(1-beta[:,i*6:i*6+j], M[:,i*6:i*6+j]-1)
+        ax[i].set_xlim([0,0.3])
+        ax[i].set_ylim([0,5])
+        ax[i].set_xlabel(r'$1-\beta$')
+ax[0].set_ylabel(r'$M-1$')
+plt.savefig('plots/M_vs_beta_plots.png')
