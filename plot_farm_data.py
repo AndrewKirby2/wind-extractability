@@ -65,31 +65,18 @@ error_zeta = error_zeta/50
 print(error_beta)
 print(error_zeta)
 
-theta_profiles = np.zeros((10,24,41))
-for no in range(10):
-    print(no)
-    var_dict = load_NWP_data(f'DS{no}', 30)
-    th_profile, th_heights = farm_vertical_profile(var_dict, 'theta_mn_0', 30)
-    theta_profiles[no,:,:] = th_profile
-
-norm = mpl.colors.Normalize(vmin=0, vmax=35)
-cmap = mpl.cm.ScalarMappable(norm=norm, cmap=mpl.cm.viridis)
-cmap.set_array([])
-
-for zeta_min in np.arange(0,32,5):
-    print(zeta_min)
-    zeta_max = zeta_min + 5
+fig, ax = plt.subplots(ncols=3, figsize = [12,3])
+farm_diameters = [10, 20, 30]
+for i in range(3):
     for no in range(10):
-        zeta = np.load(f'data/zeta_DS{no}_30.npy')
-        cond = np.logical_and(zeta>zeta_min,zeta<zeta_max)
-        for i in range(24):
-            if cond[i]:
-                plt.plot(theta_profiles[no,i,:]-theta_profiles[no,i,0], th_heights, color=cmap.to_rgba(zeta[i]))
-    plt.xlim([-2,5])
-    plt.ylim([0,1000])
-    plt.xlabel(r'$\theta-\theta_0$')
-    plt.ylabel('Height (m)')
-    cbar = plt.colorbar(cmap)
-    cbar.set_label('$\zeta$')
-    plt.savefig(f'plots/zeta_theta_{zeta_min}_to_{zeta_max}.png')
-    plt.close()
+        zeta = np.load(f'data/zeta_DS{no}_{farm_diameters[i]}.npy')
+        cf0 = np.load(f'data/cf0_DS{no}_{farm_diameters[i]}.npy')
+        ax[i].scatter(cf0, zeta, label=f'DS{no}')
+        ax[i].set_ylabel(r'$\zeta$')
+        ax[i].set_xlabel(r'$C_{f0}$')
+ax[0].set_ylim([0,80])
+ax[1].set_ylim([0,50])
+ax[2].set_ylim([0,40])
+ax[2].legend(ncol=2)
+plt.tight_layout()
+plt.savefig('plots/zeta_cf0.png')
