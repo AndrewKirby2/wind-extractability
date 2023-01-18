@@ -67,16 +67,21 @@ print(error_zeta)
 
 fig, ax = plt.subplots(ncols=3, figsize = [12,3])
 farm_diameters = [10, 20, 30]
+vmins = [15,5,5]
+vmaxs = [60,40,30]
 for i in range(3):
     for no in range(10):
         zeta = np.load(f'data/zeta_DS{no}_{farm_diameters[i]}.npy')
-        cf0 = np.load(f'data/cf0_DS{no}_{farm_diameters[i]}.npy')
-        ax[i].scatter(cf0, zeta, label=f'DS{no}')
-        ax[i].set_ylabel(r'$\zeta$')
-        ax[i].set_xlabel(r'$C_{f0}$')
-ax[0].set_ylim([0,80])
-ax[1].set_ylim([0,50])
-ax[2].set_ylim([0,40])
-ax[2].legend(ncol=2)
+        tauw0 = np.load(f'data/tauw0_DS{no}_{farm_diameters[i]}.npy')
+        uf0 = np.load(f'data/uf0_DS{no}_{farm_diameters[i]}.npy')
+        cond = np.logical_and(zeta>vmins[i], zeta<vmaxs[i])
+        sc = ax[i].scatter(tauw0[cond], uf0[cond], c=zeta[cond], vmin=vmins[i], vmax=vmaxs[i])
+        ax[i].set_ylabel(r'$U_{f0}$')
+        ax[i].set_xlabel(r'$\tau_{w0}$')
+    cbar = plt.colorbar(sc, ax=ax[i])
+    cbar.set_label(r'$\zeta$')
 plt.tight_layout()
 plt.savefig('plots/zeta_cf0.png')
+plt.close()
+
+

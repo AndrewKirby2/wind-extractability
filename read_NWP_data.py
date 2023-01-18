@@ -602,7 +602,7 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0, tauw_0
+  return beta, M, zeta, cf_0, tauw_0, uf_0
 
 def calculate_farm_data_hubh(DS_no, farm_diameter, z0='0p1'):
   """Calculate wind farm variables using
@@ -673,12 +673,13 @@ for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
   for no in range(0):
     print(no)
-    beta, M, zeta, cf_0, tauw_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, tauw_0, uf_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/tauw0_DS{no}_{farm_diameter}.npy', tauw_0)
+    np.save(f'data/uf0_DS{no}_{farm_diameter}.npy', uf_0)
   
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
   print(z0)
