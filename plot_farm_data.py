@@ -49,32 +49,16 @@ ax[0].set_ylabel(r'$M-1$')
 plt.savefig('plots/M_vs_beta_plots.png')
 plt.close()
 
-#calculate difference between volume-averaged and hub height averaged beta values
-error_beta = 0
-error_zeta = 0
 for farm_diameter in [10, 15, 20, 25, 30]:
-    for i in range(10):
-        beta_vol = np.load(f'data/beta_DS{i}_{farm_diameter}.npy')
-        beta_hubh = np.load(f'data_hubh/beta_DS{i}_{farm_diameter}.npy')
-        zeta_vol = np.load(f'data/zeta_DS{i}_{farm_diameter}.npy')
-        zeta_hubh = np.load(f'data_hubh/zeta_DS{i}_{farm_diameter}.npy')
-        error_beta += sk.mean_absolute_percentage_error(beta_vol, beta_hubh)
-        error_zeta += sk.mean_absolute_error(zeta_vol, zeta_hubh)
-error_beta = error_beta/50
-error_zeta = error_zeta/50
-print(error_beta)
-print(error_zeta)
-
-var_dict = load_NWP_data('DS8', 30)
-wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], 30, 100)
-taux_mean_0, taux_heights = farm_vertical_profile(var_dict, 'taux_mn_0', farm_diameter)
-tauy_mean_0, tauy_heights = farm_vertical_profile(var_dict, 'tauy_mn_0', farm_diameter)
-
-for i in range(0,24,2):
-    tauw0_profile = taux_mean_0[i,:]*np.cos(wind_dir_0[i]) + tauy_mean_0[i,:]*np.sin(wind_dir_0[i])
-    plt.plot(tauw0_profile, taux_heights)
-plt.xlim([0,0.3])
-plt.ylim([0,400])
-plt.xlabel(r'$\tau_{xz}$ in hub height wind direction')
-plt.ylabel(r'Height (m)')
-plt.savefig('plots/DS8_stress_profiles_30km.png')
+    for no in range(10):
+        zeta_new = np.load(f'data/zeta_DS{no}_{farm_diameter}.npy')
+        zeta_old = np.load(f'../../part1_turbines/UM_farm_data/data/zeta_DS{no}.npy', allow_pickle=True)
+        zeta_old = np.atleast_1d(zeta_old)
+        plt.scatter(zeta_old[0][farm_diameter], zeta_new, c='k')
+        plt.xlim([0,30])
+        plt.ylim([0,80])
+        plt.title(f'Farm diameter {farm_diameter} km')
+        plt.xlabel(r'$\zeta$ old method')
+        plt.ylabel(r'$\zeta$ new method')
+    plt.savefig(f'plots/zeta_difference_{farm_diameter}.png')
+    plt.close()
