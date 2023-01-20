@@ -5,6 +5,26 @@ import numpy.testing as npt
 from read_NWP_data import *
 from calculate_zeta_components import *
 
+def test_X_adv_top():
+    """Test calculation of momentum advection at
+    top surface
+    """
+    var_dict = load_NWP_data('DS8', 30)
+    wind_dir_0 = np.ones(24)
+    wind_dir = np.zeros(24)
+    u_mn_0 = var_dict['u_mn']
+    var_dict['u_mn'].data[:,:,:,:] = 10.0
+    var_dict['w_mn'].data[:,:,:,:] = -0.1
+    var_dict['dens_mn'].data[:,:,:,:] = 1.0
+    X_top_0, X_top = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+    npt.assert_almost_equal(X_top, 4e-3*np.ones(24))
+    var_dict['u_mn_0'].data[:,:,:,:] = 10.0
+    var_dict['v_mn_0'].data[:,:,:,:] = 5.0
+    var_dict['w_mn_0'].data[:,:,:,:] = -0.1
+    var_dict['dens_mn_0'].data[:,:,:,:] = 0.75
+    X_top_0, X_top = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+    npt.assert_almost_equal(X_top_0, 2.883113395e-3*np.ones(24))
+
 def test_X_top():
     """Test calculation of Reynolds stress at
     top surface

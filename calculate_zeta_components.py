@@ -174,13 +174,13 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
 
     return X_adv_top_0, X_adv_top
 
-farm_diameter = 30
+farm_diameter = 10
 DS_no = 8
 var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
 wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, 250)
 wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, 250)
 X_adv_0, X_adv = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-X_top_0, X_top = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, 200)
+X_top_0, X_top = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
 beta = np.load(f'data/beta_DS{DS_no}_30.npy')
 tauw_0 = np.load(f'data/tauw0_DS{DS_no}_30.npy')
 plt.plot((X_top-X_top_0)/(beta*tauw_0), color='r')
