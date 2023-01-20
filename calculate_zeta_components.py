@@ -7,7 +7,7 @@ for more details
 from read_NWP_data import *
 import numpy as np
 
-def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir):
+def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=200):
     """  Calculates the inflow of momentum X due to
     Reynolds stress at the top surface of control volume
     (note that this per unit volume)
@@ -24,6 +24,8 @@ def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_di
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
         hubh wind direction with turbines in radians
+    n_disc : int
+        number of discresation points
 
     Returns
     -------
@@ -36,8 +38,8 @@ def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_di
     zh = grid.coords('level_height')[0].points
 
     #discretisation for interpolation
-    n_lats = 200
-    n_lons = 200
+    n_lats = n_disc
+    n_lons = n_disc
 
     #extract data from NWP simulations
     taux_mn = var_dict['taux_mn']
@@ -86,4 +88,6 @@ farm_diameter = 30
 var_dict = load_NWP_data('DS3', farm_diameter)
 wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, 250)
 wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, 250)
-print(calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir))
+for n_disc in [50, 100, 200, 500, 1000]:
+    X_top_0, X_top = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc)
+    print(n_disc, np.mean(X_top_0), np.mean(X_top))

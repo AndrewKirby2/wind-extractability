@@ -3,6 +3,24 @@
 import numpy as np
 import numpy.testing as npt
 from read_NWP_data import *
+from calculate_zeta_components import *
+
+def test_X_top():
+    """Test calculation of Reynolds stress at
+    top surface
+    """
+    var_dict = load_NWP_data('DS8', 30)
+    wind_dir_0 = np.ones(24)
+    wind_dir = np.zeros(24)
+    taux_mn_0 = var_dict['taux_mn']
+    zh = var_dict['taux_mn'].coords('level_height')[0].points
+    for i in range(40):
+        var_dict['taux_mn'].data[:,i,:,:] = zh[i]/1000.0
+        var_dict['taux_mn_0'].data[:,i,:,:] = zh[i]/2000.0
+        var_dict['tauy_mn_0'].data[:,i,:,:] = zh[i]/1000.0
+    X_top_0, X_top = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+    npt.assert_array_equal(X_top, 1e-3*np.ones(24))
+    npt.assert_almost_equal(X_top_0, 1.111622138e-3*np.ones(24))
 
 def test_dummy():
     npt.assert_array_equal(np.array([0]),np.array([0]))
