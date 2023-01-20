@@ -30,7 +30,9 @@ def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_di
     Returns
     -------
     X_top_0 : numpy array (size 24)
-    net momentum injection per unit volume (N/m^3)
+        net momentum injection per unit volume without turbines(N/m^3)
+    X_top : numpy array (size 24)
+        net momentum injection per unit volume with turbines (N/m^3)
     """
     #farm parameters
     mperdeg = 111132.02
