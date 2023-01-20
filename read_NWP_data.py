@@ -27,7 +27,7 @@ def load_NWP_data(DS_no, farm_diameter, z0='0p1'):
 
   #times and variable names
   fn_times = ['000','006', '012', '018']
-  fn_vars = ['u_mn', 'v_mn', 'taux_mn', 'tauy_mn', 'dens_mn', 'theta_mn']
+  fn_vars = ['u_mn', 'v_mn', 'w_mn', 'taux_mn', 'tauy_mn', 'dens_mn', 'theta_mn']
 
   #create dictionary of extract data
   var_dict = dict()
