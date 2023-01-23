@@ -6,6 +6,7 @@ for more details
 
 from read_NWP_data import *
 import numpy as np
+import scipy.interpolate as sp
 
 def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=200):
     """  Calculates the inflow of momentum X due to
@@ -103,6 +104,9 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
         hubh wind direction with turbines in radians
+    n_disc : int
+        number of grid points in longitude and
+        latitude for interpolation
 
     Returns
     -------
@@ -174,15 +178,96 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
 
     return X_adv_top_0, X_adv_top
 
-farm_diameter = 10
-DS_no = 8
+def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=200):
+    """  Calculates the inflow of momentum X due to
+    advection through top of control volume
+    (note that this per unit volume)
+
+    Parameters
+    ----------
+    var_dict : iris Cube
+        Data for variables with and without farm present
+    farm_diamater: int
+        wind farm diameter in kilometres
+    hubh: int
+        wind turbine hub height
+    wind_dir_0 : numpy array (size 24)
+        hubh wind direction without turbines in radians
+    wind_dir : numpy array (size 24)
+        hubh wind direction with turbines in radians
+    n_disc : int
+        number of grid points in azimuthal and vertical
+        direction for interpolation
+    
+    Returns
+    -------
+    X_side_0 : numpy array (size 24)
+        net momentum injection per unit volume without turbines(N/m^3)
+    X_side : numpy array (size 24)
+        net momentum injection per unit volume with turbines (N/m^3)
+    """
+
+    #farm parameters
+    mperdeg = 111132.02
+    c_lat = 0.0135 # centre of domain 
+    c_lon = 360.0135 # centre of domain
+
+    #discretisation for interpolation
+    n_azi = n_disc
+    n_vert = 250
+    heights = np.linspace(0, cv_height, n_vert)
+
+    #extract data from NWP simulations
+    u_mn = var_dict['u_mn']
+    u_mn_0 = var_dict['u_mn_0']
+    v_mn = var_dict['v_mn']
+    dens_mn = var_dict['dens_mn']
+    v_mn_0 = var_dict['v_mn_0']
+    dens_mn_0 = var_dict['dens_mn_0']
+
+    #calculate momentum advection through top surface
+    angles = np.linspace(0,2*np.pi*(n_azi-1)/n_azi, n_azi)
+    lats = c_lat + (1000*farm_diameter/2./mperdeg)*np.cos(angles)
+    lons = c_lon + (1000*farm_diameter/2./mperdeg)*np.sin(angles)
+
+    mom_in = np.zeros((24,n_azi))
+    mom_in_0 = np.zeros((24,n_azi))
+
+    for i in range(n_azi):
+        u = u_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        v = v_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        dens = dens_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+
+        u_0 = u_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        v_0 = v_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        dens_0 = dens_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+
+        m_in = - dens.data * u.data * np.cos(angles[i]) - dens.data * v.data * np.sin(angles[i])
+        m_in_0 = - dens_0.data * u_0.data * np.cos(angles[i]) - dens_0.data * v_0.data * np.sin(angles[i])
+
+        mom_in_tmp = m_in * (u.data * np.cos(wind_dir[:,np.newaxis]) + v.data * np.sin(wind_dir[:,np.newaxis]))
+        mom_in_0_tmp = m_in_0 * (u_0.data * np.cos(wind_dir_0[:,np.newaxis]) + v_0.data * np.sin(wind_dir_0[:,np.newaxis]))
+
+        mom_in[:,i] = np.mean(mom_in_tmp, axis=1)
+        mom_in_0[:,i] = np.mean(mom_in_0_tmp, axis=1)
+    
+    X_side = np.mean(mom_in, axis=1)/250
+    X_side_0 = np.mean(mom_in_0, axis=1)/250
+    return X_side_0, X_side
+
+farm_diameter = 30
+DS_no = 0
 var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
 wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, 250)
 wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, 250)
-X_adv_0, X_adv = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-X_top_0, X_top = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-beta = np.load(f'data/beta_DS{DS_no}_30.npy')
-tauw_0 = np.load(f'data/tauw0_DS{DS_no}_30.npy')
-plt.plot((X_top-X_top_0)/(beta*tauw_0), color='r')
-plt.plot((X_adv-X_adv_0)/(beta*tauw_0), color='k')
-plt.savefig('plots/zeta_components.png')
+var_dict['u_mn'].data[:,:,:,:] = 10.0
+var_dict['v_mn'].data[:,:,:,:] = 0.0
+var_dict['dens_mn'].data[:,:,:,:] = 1.0
+lons = var_dict['u_mn'].coords('grid_longitude')[0].points
+for i in range(np.size(lons)):
+    if lons[i] > 360.0135:
+        var_dict['u_mn'].data[:,:,:,i] = 0.0
+print(var_dict['u_mn'].data[0,5,0,:])
+wind_dir = np.zeros(24)
+X_adv_0, X_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
+print(X_adv)
