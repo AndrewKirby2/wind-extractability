@@ -178,7 +178,7 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
 
     return X_adv_top_0, X_adv_top
 
-def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=200):
+def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
     """  Calculates the inflow of momentum X due to
     advection through top of control volume
     (note that this per unit volume)
@@ -227,8 +227,8 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
 
     #calculate momentum advection through top surface
     angles = np.linspace(0,2*np.pi*(n_azi-1)/n_azi, n_azi)
-    lats = c_lat + (1000*farm_diameter/2./mperdeg)*np.cos(angles)
-    lons = c_lon + (1000*farm_diameter/2./mperdeg)*np.sin(angles)
+    lons = c_lon + (1000*farm_diameter/2./mperdeg)*np.cos(angles)
+    lats = c_lat + (1000*farm_diameter/2./mperdeg)*np.sin(angles)
 
     mom_in = np.zeros((24,n_azi))
     mom_in_0 = np.zeros((24,n_azi))
@@ -251,8 +251,8 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
         mom_in[:,i] = np.mean(mom_in_tmp, axis=1)
         mom_in_0[:,i] = np.mean(mom_in_0_tmp, axis=1)
     
-    X_side = np.mean(mom_in, axis=1)/250
-    X_side_0 = np.mean(mom_in_0, axis=1)/250
+    X_side = np.mean(mom_in, axis=1)/ (farm_diameter*1000/4.0)
+    X_side_0 = np.mean(mom_in_0, axis=1)/ (farm_diameter*1000/4.0)
     return X_side_0, X_side
 
 farm_diameter = 30
@@ -267,7 +267,6 @@ lons = var_dict['u_mn'].coords('grid_longitude')[0].points
 for i in range(np.size(lons)):
     if lons[i] > 360.0135:
         var_dict['u_mn'].data[:,:,:,i] = 0.0
-print(var_dict['u_mn'].data[0,5,0,:])
 wind_dir = np.zeros(24)
-X_adv_0, X_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
-print(X_adv)
+#X_adv_0, X_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
+#print(X_adv)

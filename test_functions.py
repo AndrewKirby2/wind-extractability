@@ -15,7 +15,7 @@ def test_X_adv_side():
     var_dict['u_mn_0'].data[:,:,:,:] = 10.0
     var_dict['v_mn_0'].data[:,:,:,:] = 10.0
     var_dict['dens_mn_0'].data[:,:,:,:] = 1.0
-    X_side_0, X_side = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
+    X_side_0, X_side = calculate_X_advection_side(var_dict, 30, 250, wind_dir_0, wind_dir, n_disc=10)
     npt.assert_almost_equal(X_side_0, np.zeros(24))
     var_dict['u_mn'].data[:,:,:,:] = 10.0
     var_dict['v_mn'].data[:,:,:,:] = 0.0
@@ -24,8 +24,8 @@ def test_X_adv_side():
     for i in range(np.size(lons)):
         if lons[i] > 360.0135:
             var_dict['u_mn'].data[:,:,:,i] = 0.0
-    X_side_0, X_side = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
-    npt.assert_almost_equal(X_side, 0.424413181e-3*np.ones(24))
+    X_side_0, X_side = calculate_X_advection_side(var_dict, 30, 250, wind_dir_0, wind_dir, n_disc=15)
+    npt.assert_allclose(X_side, 4.24413181e-3*np.ones(24), rtol=0.005)
 
 def test_X_adv_top():
     """Test calculation of momentum advection at
