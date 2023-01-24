@@ -255,18 +255,112 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
     X_side_0 = np.mean(mom_in_0, axis=1)/ (farm_diameter*1000/4.0)
     return X_side_0, X_side
 
+def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
+    """  Calculates the inflow of momentum X due to
+    pressure gradient forcing
+
+    Parameters
+    ----------
+    var_dict : iris Cube
+        Data for variables with and without farm present
+    farm_diamater: int
+        wind farm diameter in kilometres
+    hubh: int
+        wind turbine hub height
+    wind_dir_0 : numpy array (size 24)
+        hubh wind direction without turbines in radians
+    wind_dir : numpy array (size 24)
+        hubh wind direction with turbines in radians
+    n_disc : int
+        number of grid points in azimuthal and vertical
+        direction for interpolation
+    
+    Returns
+    -------
+    pres_term_0 : numpy array (size 24)
+        pressure force per unit volume without turbines (N/m^3)
+    pres_term : numpy array (size 24)
+        pressure force per unit volume with turbines (N/m^3)
+    """
+
+    #farm parameters
+    mperdeg = 111132.02
+    c_lat = 0.0135 # centre of domain 
+    c_lon = 360.0135 # centre of domain
+
+    #discretisation for interpolation
+    n_azi = n_disc
+    n_vert = 250
+    heights = np.linspace(0, cv_height, n_vert)
+
+    #extract data from NWP simulations
+    u_mn = var_dict['u_mn']
+    u_mn_0 = var_dict['u_mn_0']
+    v_mn = var_dict['v_mn']
+    p_mn = var_dict['p_mn']
+    v_mn_0 = var_dict['v_mn_0']
+    p_mn_0 = var_dict['p_mn_0']
+
+    #calculate momentum advection through top surface
+    angles = np.linspace(0,2*np.pi*(n_azi-1)/n_azi, n_azi)
+    lons = c_lon + (1000*farm_diameter/2./mperdeg)*np.cos(angles)
+    lats = c_lat + (1000*farm_diameter/2./mperdeg)*np.sin(angles)
+
+    pres = np.zeros((24,n_azi))
+    pres_0 = np.zeros((24,n_azi))
+
+    for i in range(n_azi):
+        u = u_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        v = v_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        p = p_mn.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+
+        u_0 = u_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        v_0 = v_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+        p_0 = p_mn_0.interpolate([('grid_latitude', lats[i]),('grid_longitude', lons[i]),('level_height', heights)], iris.analysis.Linear())
+
+        pres_tmp = - p.data * np.cos(wind_dir[:,np.newaxis] - angles[i])
+        pres_0_tmp = - p_0.data * np.cos(wind_dir_0[:,np.newaxis] - angles[i])
+
+        pres[:,i] = np.mean(pres_tmp, axis=1)
+        pres_0[:,i] = np.mean(pres_0_tmp, axis=1)
+    
+    pres_term = np.mean(pres, axis=1)/ (farm_diameter*1000/4.0)
+    pres_term_0 = np.mean(pres_0, axis=1)/ (farm_diameter*1000/4.0)
+    return pres_term_0, pres_term
+
 farm_diameter = 30
-DS_no = 0
+DS_no = 8
 var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
 wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, 250)
 wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, 250)
-var_dict['u_mn'].data[:,:,:,:] = 10.0
-var_dict['v_mn'].data[:,:,:,:] = 0.0
-var_dict['dens_mn'].data[:,:,:,:] = 1.0
-lons = var_dict['u_mn'].coords('grid_longitude')[0].points
-for i in range(np.size(lons)):
-    if lons[i] > 360.0135:
-        var_dict['u_mn'].data[:,:,:,i] = 0.0
-wind_dir = np.zeros(24)
-#X_adv_0, X_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir, n_disc=10)
-#print(X_adv)
+X_top_rey_0, X_top_rey = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+X_top_adv_0, X_top_adv = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+X_side_adv_0, X_side_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+pres_term_0, pres_term = calculate_PGF(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
+zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameter}.npy')
+beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
+tauw0 = np.load(f'data/tauw0_DS{DS_no}_{farm_diameter}.npy')
+uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
+plt.plot(zeta)
+plt.ylim([0,25])
+plt.savefig(f'plots/zeta_DS{DS_no}.png')
+plt.close()
+
+top_rey = (250/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
+top_adv = (250/tauw0) * (X_top_adv - X_top_adv_0) / (1 - beta)
+side_adv =  (250/tauw0) * (X_side_adv - X_side_adv_0) / (1 - beta)
+pgf =  (250/tauw0) * (pres_term - pres_term_0) / (1 - beta)
+
+plt.plot(top_rey, label='Reynolds stress top surface')
+plt.plot(top_adv, label='Advection top surface')
+plt.plot(side_adv, label='Advection side surfaces')
+plt.plot(pgf, label='Pressure gradient forcing')
+plt.plot(top_rey+top_adv+side_adv+pgf, c='k')
+print(top_rey+top_adv+side_adv+pgf)
+print(zeta)
+plt.legend()
+plt.savefig(f'plots/zeta_components_DS{DS_no}.png')
+plt.close()
+
+plt.scatter(uf0, pgf)
+plt.savefig('plots/pres_term.png')
