@@ -5,6 +5,24 @@ import numpy.testing as npt
 from read_NWP_data import *
 from calculate_zeta_components import *
 
+def test_pgf_calculation():
+    """Test calculation of pressure
+    gradient forcing
+    """
+    var_dict = load_NWP_data('DS3', 10)
+    wind_dir_0 = np.linspace(0,2*np.pi,24)
+    wind_dir = np.zeros(24)
+    var_dict['p_mn_0'].data[:,:,:,:] = 10.0
+    var_dict['p_mn'].data[:,:,:,:] = 10.0
+    lons = var_dict['p_mn'].coords('grid_longitude')[0].points
+    for i in range(np.size(lons)):
+        if lons[i] > 360.0135:
+            var_dict['p_mn'].data[:,:,:,i] = 0.0
+            var_dict['p_mn_0'].data[:,:,:,i] = 0.0
+    pgf_0, pgf = calculate_PGF(var_dict, 10, 250, wind_dir_0, wind_dir, n_disc=15)
+    npt.assert_allclose(pgf, 1.273239545e-3*np.ones(24), rtol=0.005)
+    npt.assert_allclose(pgf_0, 1.27323954e-3*np.cos(np.linspace(0,2*np.pi,24)), rtol=0.005)
+
 def test_X_adv_side():
     """Test calculation of momentum advection at
     top surface
@@ -15,7 +33,7 @@ def test_X_adv_side():
     var_dict['u_mn_0'].data[:,:,:,:] = 10.0
     var_dict['v_mn_0'].data[:,:,:,:] = 10.0
     var_dict['dens_mn_0'].data[:,:,:,:] = 1.0
-    X_side_0, X_side = calculate_X_advection_side(var_dict, 30, 250, wind_dir_0, wind_dir, n_disc=10)
+    X_side_0, X_side = calculate_X_advection_side(var_dict, 30, 250, wind_dir_0, wind_dir, n_disc=15)
     npt.assert_almost_equal(X_side_0, np.zeros(24))
     var_dict['u_mn'].data[:,:,:,:] = 10.0
     var_dict['v_mn'].data[:,:,:,:] = 0.0

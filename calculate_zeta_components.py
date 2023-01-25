@@ -19,8 +19,8 @@ def calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_di
         Data for variables with and without farm present
     farm_diamater: int
         wind farm diameter in kilometres
-    hubh: int
-        wind turbine hub height
+    cv_height: int
+        height of control volume
     wind_dir_0 : numpy array (size 24)
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
@@ -98,8 +98,8 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
         Data for variables with and without farm present
     farm_diamater: int
         wind farm diameter in kilometres
-    hubh: int
-        wind turbine hub height
+    cv_height: int
+        height of control volume
     wind_dir_0 : numpy array (size 24)
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
@@ -189,8 +189,8 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
         Data for variables with and without farm present
     farm_diamater: int
         wind farm diameter in kilometres
-    hubh: int
-        wind turbine hub height
+    cv_height: int
+        height of control volume
     wind_dir_0 : numpy array (size 24)
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
@@ -265,8 +265,8 @@ def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_di
         Data for variables with and without farm present
     farm_diamater: int
         wind farm diameter in kilometres
-    hubh: int
-        wind turbine hub height
+    cv_height: int
+        height of control volume
     wind_dir_0 : numpy array (size 24)
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
@@ -328,39 +328,52 @@ def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_di
     pres_term_0 = np.mean(pres_0, axis=1)/ (farm_diameter*1000/4.0)
     return pres_term_0, pres_term
 
-farm_diameter = 30
-DS_no = 8
-var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
-wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, 250)
-wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, 250)
-X_top_rey_0, X_top_rey = calculate_X_reynolds(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-X_top_adv_0, X_top_adv = calculate_X_advection_top(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-X_side_adv_0, X_side_adv = calculate_X_advection_side(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-pres_term_0, pres_term = calculate_PGF(var_dict, farm_diameter, 250, wind_dir_0, wind_dir)
-zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameter}.npy')
-beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
-tauw0 = np.load(f'data/tauw0_DS{DS_no}_{farm_diameter}.npy')
-uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
-plt.plot(zeta)
-plt.ylim([0,25])
-plt.savefig(f'plots/zeta_DS{DS_no}.png')
-plt.close()
+def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
+    """  Calculates the change of momentum
+    with time inside control volume
 
-top_rey = (250/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
-top_adv = (250/tauw0) * (X_top_adv - X_top_adv_0) / (1 - beta)
-side_adv =  (250/tauw0) * (X_side_adv - X_side_adv_0) / (1 - beta)
-pgf =  (250/tauw0) * (pres_term - pres_term_0) / (1 - beta)
+    Parameters
+    ----------
+    var_dict : iris Cube
+        Data for variables with and without farm present
+    farm_diamater: int
+        wind farm diameter in kilometres
+    cv_height: int
+        height of control volume
+    wind_dir_0 : numpy array (size 24)
+        hubh wind direction without turbines in radians
+    wind_dir : numpy array (size 24)
+        hubh wind direction with turbines in radians
+    n_disc : int
+        number of grid points in azimuthal and vertical
+        direction for interpolation
+    
+    Returns
+    -------
+    accel_0 : numpy array (size 24)
+        change in momentum with time per unit volume without turbines
+    accel_0 : numpy array (size 24)
+        change in momentum with time per unit volume without turbines
+    """
+    
+    #with farm present
+    u_mean = CV_average(var_dict, 'u_mn', farm_diameter, cv_height)
+    v_mean = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
+    dens_mean = CV_average(var_dict, 'dens_mn', farm_diameter, cv_height)
+    # calculate farm-layer-averaged streamwise velocity U_F
+    uf = u_mean*np.cos(wind_dir) + v_mean*np.sin(wind_dir)
 
-plt.plot(top_rey, label='Reynolds stress top surface')
-plt.plot(top_adv, label='Advection top surface')
-plt.plot(side_adv, label='Advection side surfaces')
-plt.plot(pgf, label='Pressure gradient forcing')
-plt.plot(top_rey+top_adv+side_adv+pgf, c='k')
-print(top_rey+top_adv+side_adv+pgf)
-print(zeta)
-plt.legend()
-plt.savefig(f'plots/zeta_components_DS{DS_no}.png')
-plt.close()
+    #without farm present
+    u_mean_0 = CV_average(var_dict, 'u_mn_0', farm_diameter, cv_height)
+    v_mean_0 = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
+    dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
+    uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
 
-plt.scatter(uf0, pgf)
-plt.savefig('plots/pres_term.png')
+    #calculate time series of momentum within CV
+    mom = dens_mean * uf
+    mom_0 = dens_mean_0 * uf_0
+
+    accel = np.gradient(mom) / 3600.0
+    accel_0 = np.gradient(mom_0) / 3600.0
+
+    return accel_0, accel
