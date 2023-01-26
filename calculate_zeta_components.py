@@ -349,8 +349,8 @@ def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_
     -------
     accel_0 : numpy array (size 24)
         change in momentum with time per unit volume without turbines
-    accel_0 : numpy array (size 24)
-        change in momentum with time per unit volume without turbines
+    accel : numpy array (size 24)
+        change in momentum with time per unit volume with turbines
     """
     
     #with farm present
@@ -374,3 +374,56 @@ def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_
     accel_0 = np.gradient(mom_0) / 3600.0
 
     return accel_0, accel
+
+def calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir):
+    """  Calculates the coriolis force per unit
+    volume in the opposite direction to hub height flow
+
+    Parameters
+    ----------
+    var_dict : iris Cube
+        Data for variables with and without farm present
+    farm_diamater: int
+        wind farm diameter in kilometres
+    cv_height: int
+        height of control volume
+    wind_dir_0 : numpy array (size 24)
+        hubh wind direction without turbines in radians
+    wind_dir : numpy array (size 24)
+        hubh wind direction with turbines in radians
+    
+    Returns
+    -------
+    coriolis_0 : numpy array (size 24)
+        coriolis force per unit volume without turbines
+    coriolis : numpy array (size 24)
+        coriolis force per unit volume with turbines
+    """
+
+    #farm parameters
+    mperdeg = 111132.02
+    #coriolis parameter
+    f_cor = 1.21532e-4
+
+    #discretisation for interpolation
+    n_lats = 200
+    n_lons = 200
+    heights = np.linspace(0, cv_height, 100)
+
+    #with farm present
+    u_mean = CV_average(var_dict, 'u_mn', farm_diameter, cv_height)
+    v_mean = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
+    dens_mean = CV_average(var_dict, 'dens_mn', farm_diameter, cv_height)
+
+    #without farm present
+    u_mean_0 = CV_average(var_dict, 'u_mn_0', farm_diameter, cv_height)
+    v_mean_0 = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
+    dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
+
+    #calculate coriolis force at each location
+    coriolis = -dens_mean*(f_cor*v_mean*np.cos(wind_dir) 
+                        - f_cor*u_mean*np.sin(wind_dir))
+    coriolis_0 = -dens_mean_0*(f_cor*v_mean_0*np.cos(wind_dir_0) 
+                        - f_cor*u_mean_0*np.sin(wind_dir_0))
+
+    return coriolis_0, coriolis
