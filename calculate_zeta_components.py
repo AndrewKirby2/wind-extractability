@@ -328,7 +328,7 @@ def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_di
     pres_term_0 = np.mean(pres_0, axis=1)/ (farm_diameter*1000/4.0)
     return pres_term_0, pres_term
 
-def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
+def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir):
     """  Calculates the change of momentum
     with time inside control volume
 
@@ -344,9 +344,6 @@ def calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_
         hubh wind direction without turbines in radians
     wind_dir : numpy array (size 24)
         hubh wind direction with turbines in radians
-    n_disc : int
-        number of grid points in azimuthal and vertical
-        direction for interpolation
     
     Returns
     -------

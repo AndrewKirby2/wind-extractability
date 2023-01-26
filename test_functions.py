@@ -5,6 +5,20 @@ import numpy.testing as npt
 from read_NWP_data import *
 from calculate_zeta_components import *
 
+def test_acceleration():
+    """Test calculation of
+    acceleration term
+    """
+    var_dict = load_NWP_data('DS7',20)
+    wind_dir = np.linspace(0,2*np.pi,24)
+    wind_dir_0 = np.zeros(24)
+    var_dict['dens_mn_0'].data[:,:,:,:] = 2.0
+    for i in range(24):
+        var_dict['u_mn_0'].data[i,:,:,:] = i*1.0
+    accel_0, accel = calculate_acceleration(var_dict, 20, 250, wind_dir_0, wind_dir)
+    npt.assert_allclose(accel_0, 5.55555555555555e-4*np.ones(24), rtol=0.005)
+
+    
 def test_pgf_calculation():
     """Test calculation of pressure
     gradient forcing

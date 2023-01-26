@@ -591,8 +591,8 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   #calculate natural friction coefficient
   cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
   #calculate natural Froude number
-  theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
-  neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
+  #theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
+  #neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
   #fr_0 = calculate_fr_number(var_dict, neu_layer_height, wind_dir_0, hubh, farm_diameter)
 
   #calculate farm wind-speed reduction factor \beta
@@ -683,7 +683,7 @@ for farm_diameter in [10,15,20,25,30]:
   
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
   print(z0)
-  beta, M, zeta, cf0, tauw_0 = calculate_farm_data(f'DS1', 20, z0)
+  beta, M, zeta, cf_0, tauw_0, uf_0 = calculate_farm_data(f'DS1', 20, z0)
   np.save(f'data/beta_DS1_20_{z0}.npy', beta)
   np.save(f'data/M_DS1_20_{z0}.npy', M)
   np.save(f'data/zeta_DS1_20_{z0}.npy', zeta)
