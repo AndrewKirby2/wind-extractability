@@ -178,7 +178,7 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
 
     return X_adv_top_0, X_adv_top
 
-def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
+def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=50, n_vert=50):
     """  Calculates the inflow of momentum X due to
     advection through top of control volume
     (note that this per unit volume)
@@ -214,7 +214,6 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
 
     #discretisation for interpolation
     n_azi = n_disc
-    n_vert = 250
     heights = np.linspace(0, cv_height, n_vert)
 
     #extract data from NWP simulations
@@ -255,7 +254,7 @@ def calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, w
     X_side_0 = np.mean(mom_in_0, axis=1)/ (farm_diameter*1000/4.0)
     return X_side_0, X_side
 
-def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=15):
+def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_disc=50, n_vert=50):
     """  Calculates the inflow of momentum X due to
     pressure gradient forcing
 
@@ -290,7 +289,6 @@ def calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir, n_di
 
     #discretisation for interpolation
     n_azi = n_disc
-    n_vert = 250
     heights = np.linspace(0, cv_height, n_vert)
 
     #extract data from NWP simulations
