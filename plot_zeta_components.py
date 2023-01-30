@@ -43,8 +43,27 @@ for DS_no in range(0):
     plt.savefig(f'plots/zeta_components_DS{DS_no}_{farm_diameter}.png')
     plt.close()
 
+farm_diameter = 30
+DS_no = 4
+var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
+wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
+wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
+accel_0, accel = calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
+uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
+beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
+plt.plot(accel_0)
+plt.plot(accel)
+plt.grid(True)
+plt.savefig(f'plots/accel_{DS_no}_{farm_diameter}.png')
+plt.close()
+plt.plot(uf0)
+plt.plot(beta*uf0)
+plt.grid(True)
+plt.savefig(f'plots/velocities_{DS_no}_{farm_diameter}.png')
+plt.close()
+
 farm_diameter = 10
-for DS_no in range(10):
+for DS_no in range(0):
     var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
     wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
     wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)

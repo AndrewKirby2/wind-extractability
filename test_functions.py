@@ -5,6 +5,24 @@ import numpy.testing as npt
 from read_NWP_data import *
 from calculate_zeta_components import *
 
+def test_coriolis():
+    """Test calculation of
+    coriolis term
+    """
+    var_dict = load_NWP_data('DS3',30)
+    wind_dir = np.linspace(0,2*np.pi,24)
+    wind_dir_0 = np.zeros(24)
+    var_dict['dens_mn_0'].data[:,:,:,:] = 2.0
+    var_dict['dens_mn'].data[:,:,:,:] = 2.0
+    var_dict['u_mn_0'].data[:,:,:,:] = 10.0
+    var_dict['v_mn_0'].data[:,:,:,:] = 5.0
+    var_dict['u_mn'].data[:,:,:,:] = 10.0
+    var_dict['v_mn'].data[:,:,:,:] = 0.0
+    C_0, C = calculate_coriolis_term(var_dict, 30, 250, wind_dir_0, wind_dir)
+    f_cor = 1.21532e-4
+    npt.assert_allclose(C_0, -2*5*f_cor*np.ones(24), rtol=0.005)
+    npt.assert_allclose(C, 2*10*f_cor*np.sin(np.linspace(0,2*np.pi,24)), rtol=0.005)
+
 def test_acceleration():
     """Test calculation of
     acceleration term
