@@ -173,8 +173,8 @@ def calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wi
     X_adv_top_0 = np.mean(np.ma.array(X_adv_top_0.data[:,:,:], mask=mask), axis=(1,2))
 
     #calculate momentum flux per unit volume
-    X_adv_top = X_adv_top / cv_height
-    X_adv_top_0 = X_adv_top_0 / cv_height
+    X_adv_top = X_adv_top.data / cv_height
+    X_adv_top_0 = X_adv_top_0.data / cv_height
 
     return X_adv_top_0, X_adv_top
 
