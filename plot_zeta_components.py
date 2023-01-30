@@ -3,40 +3,68 @@ from read_NWP_data import *
 from calculate_zeta_components import *
 
 cv_height = 250
-farm_diameter = 30
 hubh = 100
 
-for farm_diameter in [10, 15, 20, 25, 30]:
-    print(farm_diameter)
+entrainment = np.zeros((5,240))
+advection = np.zeros((5,240))
+pgf = np.zeros((5,240))
+acceleration = np.zeros((5,240))
+coriolis = np.zeros((5,240))
+farm_diameters = [10, 15, 20, 25, 30]
+
+for i in range(5):
     for DS_no in range(10):
-        print(DS_no)
-        var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
-        wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
-        wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
-        X_top_rey_0, X_top_rey = calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        X_top_adv_0, X_top_adv = calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        X_side_adv_0, X_side_adv = calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        X_adv_0 = X_top_adv_0 + X_side_adv_0
-        X_adv = X_top_adv + X_side_adv
-        pres_term_0, pres_term = calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        accel_0, accel = calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        C_0, C = calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameter}.npy')
-        beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
-        tauw0 = np.load(f'data/tauw0_DS{DS_no}_{farm_diameter}.npy')
-        uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
+        
+        entrainment[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        advection[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        pgf[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
 
-        top_rey = (250/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
-        adv = (250/tauw0) * (X_adv - X_adv_0) / (1 - beta)
-        pgf =  (250/tauw0) * (pres_term - pres_term_0) / (1 - beta)
-        time = (250/tauw0) * (accel - accel_0) / (1 - beta)
-        coriolis = (250/tauw0) * (C - C_0) / (1 - beta)
+    data = [advection[i,:], entrainment[i,:], pgf[i,:], -acceleration[i,:], -coriolis[i,:]]
+    ax = plt.axes()
+    plt.boxplot(data)
+    plt.ylabel(r'Contribution to $\zeta$')
+    plt.ylim([-10,50])
+    ax.set_xticklabels(['Advection', 'Entrainment', 'PGF', 'Acceleration', 'Coriolis'])
+    plt.savefig(f'plots/zeta_components_{farm_diameters[i]}km.png')
+    plt.close()
 
-        np.save(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
-        np.save(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
-        np.save(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
-        np.save(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
-        np.save(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
+data = [entrainment[0,:], entrainment[1,:], entrainment[2,:], entrainment[3,:], entrainment[4,:]]
+ax = plt.axes()
+plt.boxplot(data)
+plt.ylim([-10,25])
+plt.ylabel(r'Contribution to $\zeta$')
+plt.xlabel('Farm diameter (km)')
+ax.set_xticklabels([10,15,20,25,30])
+plt.savefig('plots/entrainment_farm_size.png')
+plt.close()
+
+data = [advection[0,:], advection[1,:], advection[2,:], advection[3,:], advection[4,:]]
+ax = plt.axes()
+plt.boxplot(data)
+plt.ylim([-10,50])
+ax.set_xticklabels([10,15,20,25,30])
+x = np.linspace(10,30,100)
+y = 10*np.median(advection[0,:])/x
+plt.plot(np.linspace(1,5,100),y)
+plt.ylabel(r'Contribution to $\zeta$')
+plt.xlabel('Farm diameter (km)')
+plt.savefig('plots/advection_farm_size.png')
+plt.close()
+
+data = [pgf[0,:], pgf[1,:], pgf[2,:], pgf[3,:], pgf[4,:]]
+ax = plt.axes()
+plt.boxplot(data)
+plt.ylim([-10,25])
+ax.set_xticklabels([10,15,20,25,30])
+x = np.linspace(10,30,100)
+y = 10*np.median(pgf[0,:])/x
+plt.plot(np.linspace(1,5,100),y)
+plt.ylabel(r'Contribution to $\zeta$')
+plt.xlabel('Farm diameter (km)')
+plt.savefig('plots/pgf_farm_size.png')
+plt.close()
 
 
 farm_diameter = 30
