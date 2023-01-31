@@ -21,6 +21,20 @@ for i in range(5):
         acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
         coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
 
+        plt.plot(entrainment[i,24*DS_no:24*(DS_no+1)], label = 'Reynolds stress top surface')
+        plt.plot(advection[i,24*DS_no:24*(DS_no+1)], label = 'Advection')
+        plt.plot(pgf[i,24*DS_no:24*(DS_no+1)], label = 'Pressure gradient forcing')
+        plt.plot(-acceleration[i,24*DS_no:24*(DS_no+1)], label = 'Acceleration term')
+        plt.plot(-coriolis[i,24*DS_no:24*(DS_no+1)], label = 'Coriolis term')
+        sum = (advection[i,24*DS_no:24*(DS_no+1)] + entrainment[i,24*DS_no:24*(DS_no+1)] + pgf[i,24*DS_no:24*(DS_no+1)]  
+                    -acceleration[i,24*DS_no:24*(DS_no+1)] -coriolis[i,24*DS_no:24*(DS_no+1)])
+        plt.plot(sum, c='k')
+        zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameters[i]}.npy')
+        plt.plot(zeta, c='k', linestyle='--')
+        plt.legend()
+        plt.savefig(f'plots/zeta_components_DS{DS_no}_{farm_diameters[i]}.png')
+        plt.close()
+
     data = [advection[i,:], entrainment[i,:], pgf[i,:], -acceleration[i,:], -coriolis[i,:]]
     ax = plt.axes()
     plt.boxplot(data)
