@@ -426,8 +426,7 @@ def calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind
 
     return coriolis_0, coriolis
 
-cv_height = 250
-farm_diameter = 30
+cv_height = 500
 hubh = 100
 
 for farm_diameter in [10, 15, 20, 25, 30]:
@@ -450,14 +449,14 @@ for farm_diameter in [10, 15, 20, 25, 30]:
         tauw0 = np.load(f'data/tauw0_DS{DS_no}_{farm_diameter}.npy')
         uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
 
-        top_rey = (250/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
-        adv = (250/tauw0) * (X_adv - X_adv_0) / (1 - beta)
-        pgf =  (250/tauw0) * (pres_term - pres_term_0) / (1 - beta)
-        time = (250/tauw0) * (accel - accel_0) / (1 - beta)
-        coriolis = (250/tauw0) * (C - C_0) / (1 - beta)
+        top_rey = (cv_height/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
+        adv = (cv_height/tauw0) * (X_adv - X_adv_0) / (1 - beta)
+        pgf =  (cv_height/tauw0) * (pres_term - pres_term_0) / (1 - beta)
+        time = (cv_height/tauw0) * (accel - accel_0) / (1 - beta)
+        coriolis = (cv_height/tauw0) * (C - C_0) / (1 - beta)
 
-        np.save(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
-        np.save(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
-        np.save(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
-        np.save(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
-        np.save(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
+        np.save(f'data_zeta_components_hcv500/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
+        np.save(f'data_zeta_components_hcv500/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
+        np.save(f'data_zeta_components_hcv500/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
+        np.save(f'data_zeta_components_hcv500/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
+        np.save(f'data_zeta_components_hcv500/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
