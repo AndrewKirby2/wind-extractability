@@ -15,11 +15,11 @@ farm_diameters = [10, 15, 20, 25, 30]
 for i in range(5):
     for DS_no in range(10):
         
-        entrainment[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/entrainment_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        advection[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/advection_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        pgf[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/pgf_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv500/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        entrainment[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        advection[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        pgf[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
 
         plt.plot(entrainment[i,24*DS_no:24*(DS_no+1)], label = 'Reynolds stress top surface')
         plt.plot(advection[i,24*DS_no:24*(DS_no+1)], label = 'Advection')
