@@ -80,6 +80,26 @@ plt.xlabel('Farm diameter (km)')
 plt.savefig('plots/pgf_farm_size.png')
 plt.close()
 
+for z0 in ['0p05', '0p1', '0p35', '0p7', '1p4']:
+    entrainment = np.load(f'data_zeta_components_hcv250/entrainment_term_DS1_20_{z0}.npy')
+    advection = np.load(f'data_zeta_components_hcv250/advection_term_DS1_20_{z0}.npy')
+    pgf = np.load(f'data_zeta_components_hcv250/pgf_term_DS1_20_{z0}.npy')
+    acceleration = np.load(f'data_zeta_components_hcv250/acceleration_term_DS1_20_{z0}.npy')
+    coriolis = np.load(f'data_zeta_components_hcv250/coriolis_term_DS1_20_{z0}.npy')
+    plt.plot(entrainment, label = 'Reynolds stress top surface')
+    plt.plot(advection, label = 'Advection')
+    plt.plot(pgf, label = 'Pressure gradient forcing')
+    plt.plot(-acceleration, label = 'Acceleration term')
+    plt.plot(-coriolis, label = 'Coriolis term')
+    sum = entrainment + advection +pgf -acceleration - coriolis
+    plt.plot(sum, c='k')
+    zeta = np.load(f'data/zeta_DS1_20_{z0}.npy')
+    plt.plot(zeta, c='k', linestyle='--')
+    plt.legend()
+    plt.ylim([-5,30])
+    plt.savefig(f'plots/zeta_components_DS1_20_{z0}.png')
+    plt.close()
+
 
 farm_diameter = 30
 DS_no = 4
