@@ -426,12 +426,12 @@ def calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind
 
     return coriolis_0, coriolis
 
-cv_height = 250
+cv_height = 750
 hubh = 100
 
 for farm_diameter in [10, 15, 20, 25, 30]:
     print(farm_diameter)
-    for DS_no in range(0):
+    for DS_no in range(10):
         print(DS_no)
         var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
         wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
@@ -455,11 +455,11 @@ for farm_diameter in [10, 15, 20, 25, 30]:
         time = (cv_height/tauw0) * (accel - accel_0) / (1 - beta)
         coriolis = (cv_height/tauw0) * (C - C_0) / (1 - beta)
 
-        np.save(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
-        np.save(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
-        np.save(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
-        np.save(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
-        np.save(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
+        np.save(f'data_zeta_components_hcv{cv_height}/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
+        np.save(f'data_zeta_components_hcv{cv_height}/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
+        np.save(f'data_zeta_components_hcv{cv_height}/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
+        np.save(f'data_zeta_components_hcv{cv_height}/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
+        np.save(f'data_zeta_components_hcv{cv_height}/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
 
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
     print(z0)
