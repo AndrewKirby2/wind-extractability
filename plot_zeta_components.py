@@ -15,19 +15,22 @@ farm_diameters = [10, 15, 20, 25, 30]
 for i in range(5):
     for DS_no in range(10):
         
-        entrainment[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/entrainment_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        advection[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/advection_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        pgf[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/pgf_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
-        coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv250/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        entrainment[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv{cv_height}/entrainment_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        advection[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv{cv_height}/advection_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        pgf[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv{cv_height}/pgf_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        acceleration[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv{cv_height}/acceleration_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        coriolis[i,24*DS_no:24*(DS_no+1)] = np.load(f'data_zeta_components_hcv{cv_height}/coriolis_term_DS{DS_no}_{farm_diameters[i]}.npy')
+        rotation = np.load(f'data_zeta_components_hcv{cv_height}/rotation_term_DS{DS_no}_{farm_diameters[i]}.npy')
+
 
         plt.plot(entrainment[i,24*DS_no:24*(DS_no+1)], label = 'Reynolds stress top surface')
         plt.plot(advection[i,24*DS_no:24*(DS_no+1)], label = 'Advection')
         plt.plot(pgf[i,24*DS_no:24*(DS_no+1)], label = 'Pressure gradient forcing')
         plt.plot(-acceleration[i,24*DS_no:24*(DS_no+1)], label = 'Acceleration term')
         plt.plot(-coriolis[i,24*DS_no:24*(DS_no+1)], label = 'Coriolis term')
+        plt.plot(-rotation, label = 'Rotation term')
         sum = (advection[i,24*DS_no:24*(DS_no+1)] + entrainment[i,24*DS_no:24*(DS_no+1)] + pgf[i,24*DS_no:24*(DS_no+1)]  
-                    -acceleration[i,24*DS_no:24*(DS_no+1)] -coriolis[i,24*DS_no:24*(DS_no+1)])
+                    -acceleration[i,24*DS_no:24*(DS_no+1)] -coriolis[i,24*DS_no:24*(DS_no+1)] -rotation)
         plt.plot(sum, c='k')
         zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameters[i]}.npy')
         plt.plot(zeta, c='k', linestyle='--')
@@ -80,7 +83,7 @@ plt.xlabel('Farm diameter (km)')
 plt.savefig('plots/pgf_farm_size.png')
 plt.close()
 
-for z0 in ['0p05', '0p1', '0p35', '0p7', '1p4']:
+for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
     entrainment = np.load(f'data_zeta_components_hcv250/entrainment_term_DS1_20_{z0}.npy')
     advection = np.load(f'data_zeta_components_hcv250/advection_term_DS1_20_{z0}.npy')
     pgf = np.load(f'data_zeta_components_hcv250/pgf_term_DS1_20_{z0}.npy')
@@ -121,14 +124,14 @@ plt.savefig(f'plots/velocities_{DS_no}_{farm_diameter}.png')
 plt.close()
 
 farm_diameter = 10
-for DS_no in range(0):
+for DS_no in range(10):
     var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
     wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
     wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
     uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
     beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
-    plt.polar(wind_dir_0, range(24))
-    plt.plot(wind_dir, range(24))
+    plt.plot(np.unwrap(wind_dir_0), range(24))
+    plt.plot(np.unwrap(wind_dir), range(24))
     plt.savefig(f'plots/DS{DS_no}_wind_dir.png')
     plt.close()
     plt.plot(uf0)

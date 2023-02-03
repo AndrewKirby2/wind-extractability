@@ -426,40 +426,99 @@ def calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind
 
     return coriolis_0, coriolis
 
-cv_height = 750
+def calculate_rotation_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir):
+    """  Calculates the force per unit
+    volume in the opposite direction to hub height flow
+    due to the rotation of control volume
+
+    Parameters
+    ----------
+    var_dict : iris Cube
+        Data for variables with and without farm present
+    farm_diamater: int
+        wind farm diameter in kilometres
+    cv_height: int
+        height of control volume
+    wind_dir_0 : numpy array (size 24)
+        hubh wind direction without turbines in radians
+    wind_dir : numpy array (size 24)
+        hubh wind direction with turbines in radians
+    
+    Returns
+    -------
+    rot_0 : numpy array (size 24)
+        coriolis force per unit volume without turbines
+    rot : numpy array (size 24)
+        coriolis force per unit volume with turbines
+    """
+
+    #farm parameters
+    mperdeg = 111132.02
+    #coriolis parameter
+    f_cor_0 = 2*np.gradient(np.unwrap(wind_dir_0))/3600
+    f_cor = 2*np.gradient(np.unwrap(wind_dir))/3600
+
+    #discretisation for interpolation
+    n_lats = 200
+    n_lons = 200
+    heights = np.linspace(0, cv_height, 100)
+
+    #with farm present
+    u_mean = CV_average(var_dict, 'u_mn', farm_diameter, cv_height)
+    v_mean = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
+    dens_mean = CV_average(var_dict, 'dens_mn', farm_diameter, cv_height)
+
+    #without farm present
+    u_mean_0 = CV_average(var_dict, 'u_mn_0', farm_diameter, cv_height)
+    v_mean_0 = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
+    dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
+
+    #calculate coriolis force at each location
+    rot = -dens_mean*(f_cor*v_mean*np.cos(wind_dir) 
+                        - f_cor*u_mean*np.sin(wind_dir))
+    rot_0 = -dens_mean_0*(f_cor_0*v_mean_0*np.cos(wind_dir_0) 
+                        - f_cor*u_mean_0*np.sin(wind_dir_0))
+
+    return rot_0, rot
+
+cv_height = 250
 hubh = 100
 
 for farm_diameter in [10, 15, 20, 25, 30]:
     print(farm_diameter)
-    for DS_no in range(10):
+    for DS_no in range(0):
         print(DS_no)
         var_dict = load_NWP_data(f'DS{DS_no}', farm_diameter)
         wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
         wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], farm_diameter, hubh)
         X_top_rey_0, X_top_rey = calculate_X_reynolds(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
         X_top_adv_0, X_top_adv = calculate_X_advection_top(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        X_side_adv_0, X_side_adv = calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
-        X_adv_0 = X_top_adv_0 + X_side_adv_0
-        X_adv = X_top_adv + X_side_adv
-        pres_term_0, pres_term = calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
+        #X_side_adv_0, X_side_adv = calculate_X_advection_side(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
+        #X_adv_0 = X_top_adv_0 + X_side_adv_0
+        #X_adv = X_top_adv + X_side_adv
+        #pres_term_0, pres_term = calculate_PGF(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
         accel_0, accel = calculate_acceleration(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
         C_0, C = calculate_coriolis_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
+        rot_0, rot = calculate_rotation_term(var_dict, farm_diameter, cv_height, wind_dir_0, wind_dir)
         zeta = np.load(f'data/zeta_DS{DS_no}_{farm_diameter}.npy')
         beta = np.load(f'data/beta_DS{DS_no}_{farm_diameter}.npy')
         tauw0 = np.load(f'data/tauw0_DS{DS_no}_{farm_diameter}.npy')
         uf0 = np.load(f'data/uf0_DS{DS_no}_{farm_diameter}.npy')
 
         top_rey = (cv_height/tauw0) * (X_top_rey - X_top_rey_0) / (1 - beta)
-        adv = (cv_height/tauw0) * (X_adv - X_adv_0) / (1 - beta)
-        pgf =  (cv_height/tauw0) * (pres_term - pres_term_0) / (1 - beta)
+        #adv = (cv_height/tauw0) * (X_adv - X_adv_0) / (1 - beta)
+        #pgf =  (cv_height/tauw0) * (pres_term - pres_term_0) / (1 - beta)
         time = (cv_height/tauw0) * (accel - accel_0) / (1 - beta)
         coriolis = (cv_height/tauw0) * (C - C_0) / (1 - beta)
+        rotation = (cv_height/tauw0) * (rot - rot_0) / (1-beta)
 
         np.save(f'data_zeta_components_hcv{cv_height}/entrainment_term_DS{DS_no}_{farm_diameter}.npy', top_rey)
-        np.save(f'data_zeta_components_hcv{cv_height}/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
-        np.save(f'data_zeta_components_hcv{cv_height}/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
+        #np.save(f'data_zeta_components_hcv{cv_height}/advection_term_DS{DS_no}_{farm_diameter}.npy', adv)
+        #np.save(f'data_zeta_components_hcv{cv_height}/pgf_term_DS{DS_no}_{farm_diameter}.npy', pgf)
         np.save(f'data_zeta_components_hcv{cv_height}/acceleration_term_DS{DS_no}_{farm_diameter}.npy', time)
         np.save(f'data_zeta_components_hcv{cv_height}/coriolis_term_DS{DS_no}_{farm_diameter}.npy', coriolis)
+        np.save(f'data_zeta_components_hcv{cv_height}/rotation_term_DS{DS_no}_{farm_diameter}.npy', rotation)
+
 
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
     print(z0)
