@@ -572,10 +572,13 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   v_mean = CV_average(var_dict, 'v_mn', farm_diameter, cv_height)
   taux_mean = surface_average(var_dict, 'taux_mn', farm_diameter)
   tauy_mean = surface_average(var_dict, 'tauy_mn', farm_diameter)
+  taux_top_mean = top_surface_average(var_dict, 'taux_mn', farm_diameter, cv_height)
+  tauy_top_mean = top_surface_average(var_dict, 'tauy_mn', farm_diameter, cv_height)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf = u_mean*np.cos(wind_dir) + v_mean*np.sin(wind_dir)
   # calculate surface stress in streamwise direction
   tauw = taux_mean*np.cos(wind_dir) + tauy_mean*np.sin(wind_dir)
+  tau_top = taux_top_mean*np.cos(wind_dir) + tauy_top_mean*np.sin(wind_dir)
 
   #without farm present
   wind_dir_0 = hubh_wind_dir(var_dict, var_dict['u_mn_0'], var_dict['v_mn_0'], farm_diameter, hubh)
@@ -583,17 +586,19 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   v_mean_0 = CV_average(var_dict, 'v_mn_0', farm_diameter, cv_height)
   taux_mean_0 = surface_average(var_dict, 'taux_mn_0', farm_diameter)
   tauy_mean_0 = surface_average(var_dict, 'tauy_mn_0', farm_diameter)
+  taux_top_mean_0 = top_surface_average(var_dict, 'taux_mn_0', farm_diameter, cv_height)
+  tauy_top_mean_0 = top_surface_average(var_dict, 'tauy_mn_0', farm_diameter, cv_height)
   dens_mean_0 = CV_average(var_dict, 'dens_mn_0', farm_diameter, cv_height)
   # calculate farm-layer-averaged streamwise velocity U_F
   uf_0 = u_mean_0*np.cos(wind_dir_0) + v_mean_0*np.sin(wind_dir_0)
   # calculate surface stress in streamwise direction
   tauw_0 = taux_mean_0*np.cos(wind_dir_0) + tauy_mean_0*np.sin(wind_dir_0)
+  # calculate surface stress in streamwise direction
+  tau_top_0 = taux_top_mean_0*np.cos(wind_dir_0) + tauy_top_mean_0*np.sin(wind_dir_0)
   #calculate natural friction coefficient
   cf_0 = tauw_0/(0.5*dens_mean_0*uf_0*uf_0)
   #calculate natural Froude number
-  #theta_profile, theta_heights = farm_vertical_profile(var_dict, 'theta_mn_0', farm_diameter)
-  #neu_layer_height = neutral_layer_height(theta_profile, theta_heights)
-  #fr_0 = calculate_fr_number(var_dict, neu_layer_height, wind_dir_0, hubh, farm_diameter)
+
 
   #calculate farm wind-speed reduction factor \beta
   beta = uf/uf_0
@@ -602,7 +607,7 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   #calculate wind extractability factor \zeta
   zeta = (M-1)/(1-beta)
 
-  return beta, M, zeta, cf_0, tauw_0, uf_0
+  return beta, M, zeta, cf_0, tauw_0, tau_top_0, tau_top, uf_0
 
 def calculate_farm_data_hubh(DS_no, farm_diameter, z0='0p1'):
   """Calculate wind farm variables using
@@ -673,17 +678,19 @@ for farm_diameter in [10,15,20,25,30]:
   print(farm_diameter)
   for no in range(0):
     print(no)
-    beta, M, zeta, cf_0, tauw_0, uf_0 = calculate_farm_data(f'DS{no}', farm_diameter)
+    beta, M, zeta, cf_0, tauw_0, tau_top_0, tau_top, uf_0 = calculate_farm_data(f'DS{no}', farm_diameter)
     np.save(f'data/beta_DS{no}_{farm_diameter}.npy', beta)
     np.save(f'data/M_DS{no}_{farm_diameter}.npy', M)
     np.save(f'data/zeta_DS{no}_{farm_diameter}.npy', zeta)
     np.save(f'data/cf0_DS{no}_{farm_diameter}.npy', cf_0)
     np.save(f'data/tauw0_DS{no}_{farm_diameter}.npy', tauw_0)
+    np.save(f'data/tautop0_DS{no}_{farm_diameter}.npy', tau_top_0)
+    np.save(f'data/tautop_DS{no}_{farm_diameter}.npy', tau_top)
     np.save(f'data/uf0_DS{no}_{farm_diameter}.npy', uf_0)
   
 for z0 in range(0):#['0p05', '0p1', '0p35', '0p7', '1p4']:
   print(z0)
-  beta, M, zeta, cf_0, tauw_0, uf_0 = calculate_farm_data(f'DS1', 20, z0)
+  beta, M, zeta, cf_0, tauw_0, tau_top_0, uf_0 = calculate_farm_data(f'DS1', 20, z0)
   np.save(f'data/beta_DS1_20_{z0}.npy', beta)
   np.save(f'data/M_DS1_20_{z0}.npy', M)
   np.save(f'data/zeta_DS1_20_{z0}.npy', zeta)
