@@ -39,13 +39,14 @@ for time_no in range(24):
 
     for z0 in ['0p05', '0p1', '0p35', '0p7', '1p4']:
         print(z0)
+        M = np.load(f'data/M_DS1_20_{z0}.npy')
         var_dict = load_NWP_data('DS1', 20, z0)
         wind_dir = hubh_wind_dir(var_dict, var_dict['u_mn'], var_dict['v_mn'], 20, 100)
         taux_profile, tau_heights = farm_vertical_profile(var_dict, 'taux_mn', 20)
         tauy_profile, tau_heights = farm_vertical_profile(var_dict, 'tauy_mn', 20)
         tauxf = taux_profile*np.cos(wind_dir[:,np.newaxis]) + tauy_profile*np.sin(wind_dir[:,np.newaxis])
         beta = np.load(f'data/beta_DS1_20_{z0}.npy')
-        plt.plot(tauxf[time_no,:]/tauxf[time_no,0], beta[time_no]*tau_heights, label=z0)
+        plt.plot(tauxf[time_no,:]/tauxf[time_no,0], tau_heights/np.sqrt(M[time_no]), label=z0)
 
     plt.xlim([0,1])
     plt.ylim([0,1000])
