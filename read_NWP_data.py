@@ -345,10 +345,6 @@ def neutral_layer_height(theta_profile, theta_heights):
   Returns:
   layer_height : numpy array (size 24)
     heights of the neutral layer height
-  theta_profile_interp : numpy array (size (24,4001))
-    interpolated theta vertical profile
-  interp_heights : numpy array (size 4001)
-    heights for interpolated theta vertical profile
   """
   #array to store results
   layer_height = np.zeros(24)
@@ -363,6 +359,7 @@ def neutral_layer_height(theta_profile, theta_heights):
     #find index where theta is first 0.2K higher than surface value
     index = np.argmax(N_sq > 1e-6)
     layer_height[i] = theta_heights[index]
+
   return layer_height
 
 def calculate_fr_number(var_dict, neutral_layer_height, wind_dir_0, hubh, farm_diameter):
@@ -476,8 +473,8 @@ def top_surface_average(var_dict, var, farm_diameter, cv_height):
 
   Returns
   -------
-  varmean_cv : numpy array (size 24)
-    control surface averaged quantities for each hour
+  varmean_top : numpy array (size 24)
+    control volume top surface averaged quantities for each hour
     time period across 24 hour period
   """
   #farm parameters
@@ -550,13 +547,18 @@ def calculate_farm_data(DS_no, farm_diameter, z0='0p1'):
   cf0 : numpy array (size 24)
     natural surface friction coefficent for each hour
     time period across 24 hour period
-  fr0 : numpy array (size 24)
-    natural Froude number for each hour
+  tauw0: numpy array (size 24)
+    surface shear stress (without wind farm) for each hour
     time period across 24 hour period
-  rig_hubh : numpy array (size 24)
-    time-averaged gradient Richardson number at the 
-    turbine hubh for each hour time period across 
-    24 hour period
+  tau_top_0: numpy array (size 24)
+    top surface shear stress (without wind farm) for each hour
+    time period across 24 hour period
+  tau_top: numpy array (size 24)
+    top surface shear stress (with wind farm) for each hour
+    time period across 24 hour period
+  uf_0: numpy array (size 24)
+    wind-farm-layer average speed in hub height wind direction
+    for each hour time period across 24 hour period
   """
 
   #extract data
